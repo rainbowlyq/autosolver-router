@@ -1,0 +1,72 @@
+import unittest
+
+from autosolver.budget import TimeBudget
+from autosolver.evaluator import evaluate_solution
+from autosolver.parser import parse_problem
+from autosolver.strategies import (
+    GreedyByCoverage,
+    GreedyByExpectedScore,
+    GreedyByScore,
+    LocalRepair,
+)
+
+
+class StrategyTests(unittest.TestCase):
+    def test_greedy_by_score_matches_baseline_choice_order(self):
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001\tC001\t20.0\t0.5",
+                    "T0001,T0002\tC002\t5.0\t0.5",
+                    "T0003\tC001\t1.0\t0.5",
+                ]
+            )
+        )
+
+        solution = GreedyByScore().run(instance, None, TimeBudget(1.0))
+
+        self.assertEqual(
+            [(assignment.task_id_list, assignment.courier_ids) for assignment in solution.assignments],
+            [("T0003", ("C001",)), ("T0001,T0002", ("C002",))],
+        )
+
+    def test_greedy_variants_return_valid_solutions(self):
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001\tC001\t10.0\t0.9",
+                    "T0002\tC002\t9.0\t0.1",
+                    "T0001,T0002\tC003\t15.0\t0.8",
+                ]
+            )
+        )
+
+        for strategy in (GreedyByExpectedScore(), GreedyByCoverage()):
+            with self.subTest(strategy=strategy.name):
+                solution = strategy.run(instance, None, TimeBudget(1.0))
+                evaluation = evaluate_solution(instance, solution)
+                self.assertTrue(evaluation.valid)
+                self.assertGreaterEqual(evaluation.covered_tasks, 1)
+
+    def test_local_repair_keeps_or_improves_valid_incumbent(self):
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001\tC001\t10.0\t0.5",
+                    "T0002\tC002\t10.0\t0.5",
+                    "T0001,T0002\tC003\t15.0\t0.5",
+                ]
+            )
+        )
+        incumbent = GreedyByScore().run(instance, None, TimeBudget(1.0))
+
+        repaired = LocalRepair().run(instance, incumbent, TimeBudget(1.0))
+
+        self.assertTrue(evaluate_solution(instance, repaired).valid)
+
+
+if __name__ == "__main__":
+    unittest.main()

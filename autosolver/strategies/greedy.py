@@ -1,0 +1,54 @@
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable
+
+from autosolver.budget import TimeBudget
+from autosolver.models import Assignment, Candidate, ProblemInstance, Solution
+
+CandidateKey = Callable[[Candidate], tuple]
+
+
+def build_greedy_solution(
+    instance: ProblemInstance,
+    ordered_candidates: Iterable[Candidate],
+    budget: TimeBudget,
+) -> Solution:
+    used_tasks: set[str] = set()
+    used_couriers: set[str] = set()
+    assignments: list[Assignment] = []
+
+    for candidate in ordered_candidates:
+        if budget.expired():
+            break
+        if candidate.courier_id in used_couriers:
+            continue
+        if any(task_id in used_tasks for task_id in candidate.task_ids):
+            continue
+
+        assignments.append(Assignment.from_candidate(candidate))
+        used_couriers.add(candidate.courier_id)
+        used_tasks.update(candidate.task_ids)
+
+    return Solution(assignments=tuple(assignments))
+
+
+class GreedyByScore:
+    name = "greedy_by_score"
+
+    def run(
+        self,
+        instance: ProblemInstance,
+        incumbent: Solution | None,
+        budget: TimeBudget,
+    ) -> Solution:
+        ordered = sorted(
+            instance.candidates,
+            key=lambda candidate: (
+                candidate.total_score,
+                len(candidate.task_ids),
+                candidate.task_id_list,
+                candidate.courier_id,
+                candidate.index,
+            ),
+        )
+        return build_greedy_solution(instance, ordered, budget)
