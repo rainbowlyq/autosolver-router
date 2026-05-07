@@ -1,6 +1,5 @@
-from __future__ import annotations
-
 from time import perf_counter
+from typing import Optional
 
 from autosolver.budget import TimeBudget
 from autosolver.evaluator import evaluate_solution, is_better_solution
@@ -12,18 +11,18 @@ class AutoSolver:
     def __init__(
         self,
         time_limit_seconds: float = 9.5,
-        selector: StrategySelector | None = None,
+        selector: Optional[StrategySelector] = None,
     ) -> None:
         self.time_limit_seconds = time_limit_seconds
         self.selector = selector or StrategySelector()
-        self.history: list[AttemptRecord] = []
+        self.history = []
 
     def solve(self, instance: ProblemInstance) -> Solution:
         if not instance.candidates:
             return Solution.empty()
 
         budget = TimeBudget(self.time_limit_seconds)
-        incumbent: Solution | None = None
+        incumbent = None
 
         while not budget.expired():
             strategy = self.selector.next_strategy(tuple(self.history), budget)

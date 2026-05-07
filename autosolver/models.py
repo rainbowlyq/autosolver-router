@@ -1,26 +1,22 @@
-from __future__ import annotations
-
-from dataclasses import dataclass, field
+from typing import NamedTuple, Tuple
 
 
-@dataclass(frozen=True, slots=True)
-class Candidate:
+class Candidate(NamedTuple):
     index: int
     task_id_list: str
-    task_ids: tuple[str, ...]
+    task_ids: Tuple[str, ...]
     courier_id: str
     total_score: float
     willingness: float
 
 
-@dataclass(frozen=True, slots=True)
-class ProblemInstance:
-    candidates: tuple[Candidate, ...]
-    task_ids: tuple[str, ...] = field(default_factory=tuple)
-    courier_ids: tuple[str, ...] = field(default_factory=tuple)
+class ProblemInstance(NamedTuple):
+    candidates: Tuple[Candidate, ...]
+    task_ids: Tuple[str, ...] = ()
+    courier_ids: Tuple[str, ...] = ()
 
     @classmethod
-    def from_candidates(cls, candidates: tuple[Candidate, ...]) -> "ProblemInstance":
+    def from_candidates(cls, candidates: Tuple[Candidate, ...]) -> "ProblemInstance":
         task_ids = sorted({task_id for candidate in candidates for task_id in candidate.task_ids})
         courier_ids = sorted({candidate.courier_id for candidate in candidates})
         return cls(
@@ -30,10 +26,9 @@ class ProblemInstance:
         )
 
 
-@dataclass(frozen=True, slots=True)
-class Assignment:
+class Assignment(NamedTuple):
     candidate: Candidate
-    courier_ids: tuple[str, ...]
+    courier_ids: Tuple[str, ...]
 
     @classmethod
     def from_candidate(cls, candidate: Candidate) -> "Assignment":
@@ -44,7 +39,7 @@ class Assignment:
         return self.candidate.task_id_list
 
     @property
-    def task_ids(self) -> tuple[str, ...]:
+    def task_ids(self) -> Tuple[str, ...]:
         return self.candidate.task_ids
 
     @property
@@ -52,21 +47,19 @@ class Assignment:
         return self.candidate.total_score
 
 
-@dataclass(frozen=True, slots=True)
-class Solution:
-    assignments: tuple[Assignment, ...]
+class Solution(NamedTuple):
+    assignments: Tuple[Assignment, ...]
 
     @classmethod
     def empty(cls) -> "Solution":
         return cls(assignments=())
 
 
-@dataclass(frozen=True, slots=True)
-class AttemptRecord:
+class AttemptRecord(NamedTuple):
     strategy_name: str
     elapsed_seconds: float
     valid: bool
     improved: bool
-    covered_tasks: int
+    covered_tasks: float
     total_score: float
     error: str = ""

@@ -1,11 +1,9 @@
-from __future__ import annotations
-
-from collections.abc import Callable, Iterable
+from typing import Callable, Iterable, Optional, Tuple
 
 from autosolver.budget import TimeBudget
 from autosolver.models import Assignment, Candidate, ProblemInstance, Solution
 
-CandidateKey = Callable[[Candidate], tuple]
+CandidateKey = Callable[[Candidate], Tuple]
 
 
 def build_greedy_solution(
@@ -13,8 +11,8 @@ def build_greedy_solution(
     ordered_candidates: Iterable[Candidate],
     budget: TimeBudget,
 ) -> Solution:
-    used_couriers: set[str] = set()
-    assignments: list[Assignment] = []
+    used_couriers = set()
+    assignments = []
 
     for candidate in ordered_candidates:
         if budget.expired():
@@ -34,7 +32,7 @@ class GreedyByScore:
     def run(
         self,
         instance: ProblemInstance,
-        incumbent: Solution | None,
+        incumbent: Optional[Solution],
         budget: TimeBudget,
     ) -> Solution:
         ordered = sorted(

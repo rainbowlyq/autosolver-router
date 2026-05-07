@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Optional
 
 from autosolver.budget import TimeBudget
 from autosolver.evaluator import is_better_solution
@@ -12,7 +12,7 @@ class LocalRepair:
     def run(
         self,
         instance: ProblemInstance,
-        incumbent: Solution | None,
+        incumbent: Optional[Solution],
         budget: TimeBudget,
     ) -> Solution:
         best = incumbent if incumbent is not None else GreedyByScore().run(instance, None, budget)
@@ -34,8 +34,8 @@ class LocalRepair:
         instance: ProblemInstance,
         incumbent: Solution,
         budget: TimeBudget,
-    ) -> Solution | None:
-        best_candidate_solution: Solution | None = None
+    ) -> Optional[Solution]:
+        best_candidate_solution = None
         assignments = list(incumbent.assignments)
 
         for remove_index in range(len(assignments)):

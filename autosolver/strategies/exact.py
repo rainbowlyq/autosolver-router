@@ -1,28 +1,24 @@
-from __future__ import annotations
-
 from collections import defaultdict
-from dataclasses import dataclass
 from time import perf_counter
+from typing import FrozenSet, NamedTuple, Optional, Tuple
 
 from autosolver.budget import TimeBudget
 from autosolver.evaluator import evaluate_solution
 from autosolver.models import Assignment, Candidate, ProblemInstance, Solution
 
 
-@dataclass(frozen=True, slots=True)
-class _Option:
+class _Option(NamedTuple):
     candidate: Candidate
-    task_indexes: tuple[int, ...]
+    task_indexes: Tuple[int, ...]
     acceptance_probability: float
     expected_score: float
 
 
-@dataclass(frozen=True, slots=True)
-class _Metrics:
+class _Metrics(NamedTuple):
     covered_tasks: float
     total_score: float
     assignment_count: int
-    signature: tuple[str, ...]
+    signature: Tuple[str, ...]
 
 
 class ExactBranchAndBound:
@@ -35,7 +31,7 @@ class ExactBranchAndBound:
     def run(
         self,
         instance: ProblemInstance,
-        incumbent: Solution | None,
+        incumbent: Optional[Solution],
         budget: TimeBudget,
     ) -> Solution:
         started_at = perf_counter()
@@ -55,10 +51,10 @@ class ExactBranchAndBound:
 
         def search(
             group_index: int,
-            miss_probabilities: tuple[float, ...],
+            miss_probabilities: Tuple[float, ...],
             covered_tasks: float,
             total_score: float,
-            assignments: tuple[Assignment, ...],
+            assignments: Tuple[Assignment, ...],
         ) -> None:
             nonlocal best_solution, best_metrics
 
@@ -123,12 +119,12 @@ def _acceptance_probability(candidate: Candidate) -> float:
     return min(max(candidate.willingness, 0.0), 1.0)
 
 
-def _group_options_by_courier(instance: ProblemInstance) -> tuple[tuple[_Option, ...], ...]:
+def _group_options_by_courier(instance: ProblemInstance) -> Tuple[Tuple[_Option, ...], ...]:
     task_index_by_id = {
         task_id: task_index
         for task_index, task_id in enumerate(instance.task_ids)
     }
-    options_by_courier: dict[str, list[_Option]] = defaultdict(list)
+    options_by_courier = defaultdict(list)
 
     for candidate in instance.candidates:
         acceptance_probability = _acceptance_probability(candidate)
@@ -173,9 +169,9 @@ def _group_options_by_courier(instance: ProblemInstance) -> tuple[tuple[_Option,
     )
 
 
-def _build_suffix_reachable_tasks(groups: tuple[tuple[_Option, ...], ...]) -> tuple[frozenset[int], ...]:
-    suffix: list[frozenset[int]] = [frozenset() for _ in range(len(groups) + 1)]
-    reachable: set[int] = set()
+def _build_suffix_reachable_tasks(groups: Tuple[Tuple[_Option, ...], ...]) -> Tuple[FrozenSet[int], ...]:
+    suffix = [frozenset() for _ in range(len(groups) + 1)]
+    reachable = set()
 
     for group_index in range(len(groups) - 1, -1, -1):
         for option in groups[group_index]:
@@ -188,8 +184,8 @@ def _build_suffix_reachable_tasks(groups: tuple[tuple[_Option, ...], ...]) -> tu
 
 def _coverage_upper_bound(
     covered_tasks: float,
-    miss_probabilities: tuple[float, ...],
-    reachable_tasks: frozenset[int],
+    miss_probabilities: Tuple[float, ...],
+    reachable_tasks: FrozenSet[int],
 ) -> float:
     return covered_tasks + sum(
         miss_probabilities[task_index]
@@ -217,7 +213,7 @@ def _solution_metrics(instance: ProblemInstance, solution: Solution) -> _Metrics
 def _state_metrics(
     covered_tasks: float,
     total_score: float,
-    assignments: tuple[Assignment, ...],
+    assignments: Tuple[Assignment, ...],
 ) -> _Metrics:
     return _Metrics(
         covered_tasks=round(covered_tasks, 12),

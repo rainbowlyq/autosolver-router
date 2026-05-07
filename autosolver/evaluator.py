@@ -1,20 +1,17 @@
-from __future__ import annotations
-
-from dataclasses import dataclass
+from typing import NamedTuple, Optional, Tuple
 
 from autosolver.models import Candidate, ProblemInstance, Solution
 
 
-@dataclass(frozen=True, slots=True)
-class Evaluation:
+class Evaluation(NamedTuple):
     valid: bool
     expected_covered_tasks: float
     expected_coverage_rate: float
     expected_total_score: float
     raw_total_score: float
     assignment_count: int
-    signature: tuple[str, ...]
-    errors: tuple[str, ...] = ()
+    signature: Tuple[str, ...]
+    errors: Tuple[str, ...] = ()
 
     @property
     def covered_tasks(self) -> float:
@@ -33,11 +30,11 @@ def evaluate_solution(instance: ProblemInstance, solution: Solution) -> Evaluati
     known_candidate_indexes = {candidate.index for candidate in instance.candidates}
     known_tasks = set(instance.task_ids)
     miss_probability_by_task = {task_id: 1.0 for task_id in instance.task_ids}
-    used_couriers: set[str] = set()
-    errors: list[str] = []
+    used_couriers = set()
+    errors = []
     expected_total_score = 0.0
     raw_total_score = 0.0
-    signature: list[str] = []
+    signature = []
 
     for assignment in solution.assignments:
         candidate = assignment.candidate
@@ -84,7 +81,7 @@ def evaluate_solution(instance: ProblemInstance, solution: Solution) -> Evaluati
 def is_better_solution(
     instance: ProblemInstance,
     candidate: Solution,
-    incumbent: Solution | None,
+    incumbent: Optional[Solution],
 ) -> bool:
     candidate_eval = evaluate_solution(instance, candidate)
     if not candidate_eval.valid:

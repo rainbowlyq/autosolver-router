@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Dict, List, Tuple
 
 from autosolver.models import Candidate, ProblemInstance, Solution
 
@@ -6,7 +6,7 @@ from autosolver.models import Candidate, ProblemInstance, Solution
 def parse_problem(input_text: str) -> ProblemInstance:
     lines = input_text.strip().splitlines()
     start = 1 if lines and lines[0].startswith("task_id_list") else 0
-    candidates: list[Candidate] = []
+    candidates = []
 
     row_index = start
     for raw_line in lines[start:]:
@@ -45,14 +45,14 @@ def parse_problem(input_text: str) -> ProblemInstance:
     return ProblemInstance.from_candidates(tuple(candidates))
 
 
-def solution_to_output(solution: Solution) -> list[tuple[str, list[str]]]:
-    grouped_rows: dict[str, list[str]] = {}
+def solution_to_output(solution: Solution) -> List[Tuple[str, List[str]]]:
+    grouped_rows = {}  # type: Dict[str, List[str]]
     for assignment in solution.assignments:
         grouped_rows.setdefault(assignment.task_id_list, []).extend(assignment.courier_ids)
     return list(grouped_rows.items())
 
 
-def format_output_rows(output: list[tuple[str, list[str]]]) -> str:
+def format_output_rows(output: List[Tuple[str, List[str]]]) -> str:
     return "\n".join(
         f"{task_id_list}\t{','.join(courier_ids)}"
         for task_id_list, courier_ids in output

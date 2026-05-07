@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Optional
 
 from autosolver.budget import TimeBudget
 from autosolver.models import Candidate, ProblemInstance, Solution
@@ -15,7 +15,7 @@ class GreedyByExpectedScore:
     def run(
         self,
         instance: ProblemInstance,
-        incumbent: Solution | None,
+        incumbent: Optional[Solution],
         budget: TimeBudget,
     ) -> Solution:
         ordered = sorted(
@@ -37,7 +37,7 @@ class GreedyByCoverage:
     def run(
         self,
         instance: ProblemInstance,
-        incumbent: Solution | None,
+        incumbent: Optional[Solution],
         budget: TimeBudget,
     ) -> Solution:
         ordered = sorted(

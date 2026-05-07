@@ -116,8 +116,8 @@ class StrategyTests(unittest.TestCase):
     def test_default_selector_includes_exact_branch_and_bound(self):
         selector = StrategySelector()
         budget = TimeBudget(1.0)
-        history: list[AttemptRecord] = []
-        names: list[str] = []
+        history = []
+        names = []
 
         while True:
             strategy = selector.next_strategy(tuple(history), budget)

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from autosolver.parser import parse_problem, solution_to_output
 from autosolver.solver import AutoSolver
 

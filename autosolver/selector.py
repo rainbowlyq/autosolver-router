@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Optional, Tuple
 
 from autosolver.budget import TimeBudget
 from autosolver.models import AttemptRecord
@@ -13,7 +13,7 @@ from autosolver.strategies import (
 
 
 class StrategySelector:
-    def __init__(self, strategies: tuple[Strategy, ...] | None = None) -> None:
+    def __init__(self, strategies: Optional[Tuple[Strategy, ...]] = None) -> None:
         self._strategies = strategies or (
             GreedyByScore(),
             GreedyByExpectedScore(),
@@ -24,9 +24,9 @@ class StrategySelector:
 
     def next_strategy(
         self,
-        history: tuple[AttemptRecord, ...],
+        history: Tuple[AttemptRecord, ...],
         budget: TimeBudget,
-    ) -> Strategy | None:
+    ) -> Optional[Strategy]:
         if budget.expired():
             return None
         if len(history) >= len(self._strategies):

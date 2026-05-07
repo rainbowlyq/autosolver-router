@@ -1,18 +1,16 @@
-from __future__ import annotations
-
-from typing import Protocol
+from typing import Optional
 
 from autosolver.budget import TimeBudget
 from autosolver.models import ProblemInstance, Solution
 
 
-class Strategy(Protocol):
-    name: str
+class Strategy:
+    name = ""
 
     def run(
         self,
         instance: ProblemInstance,
-        incumbent: Solution | None,
+        incumbent: Optional[Solution],
         budget: TimeBudget,
     ) -> Solution:
-        ...
+        raise NotImplementedError
