@@ -46,10 +46,10 @@ def parse_problem(input_text: str) -> ProblemInstance:
 
 
 def solution_to_output(solution: Solution) -> list[tuple[str, list[str]]]:
-    return [
-        (assignment.task_id_list, list(assignment.courier_ids))
-        for assignment in solution.assignments
-    ]
+    grouped_rows: dict[str, list[str]] = {}
+    for assignment in solution.assignments:
+        grouped_rows.setdefault(assignment.task_id_list, []).extend(assignment.courier_ids)
+    return list(grouped_rows.items())
 
 
 def format_output_rows(output: list[tuple[str, list[str]]]) -> str:

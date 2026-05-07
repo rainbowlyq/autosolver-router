@@ -43,15 +43,12 @@ class LocalRepair:
                 break
 
             kept = assignments[:remove_index] + assignments[remove_index + 1 :]
-            kept_tasks = {task_id for assignment in kept for task_id in assignment.task_ids}
             kept_couriers = {courier_id for assignment in kept for courier_id in assignment.courier_ids}
 
             for candidate in instance.candidates:
                 if budget.expired():
                     break
                 if candidate.courier_id in kept_couriers:
-                    continue
-                if any(task_id in kept_tasks for task_id in candidate.task_ids):
                     continue
 
                 trial = Solution(assignments=tuple(kept + [Assignment.from_candidate(candidate)]))

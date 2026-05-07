@@ -3,6 +3,7 @@ from __future__ import annotations
 from autosolver.budget import TimeBudget
 from autosolver.models import AttemptRecord
 from autosolver.strategies import (
+    ExactBranchAndBound,
     GreedyByCoverage,
     GreedyByExpectedScore,
     GreedyByScore,
@@ -17,6 +18,7 @@ class StrategySelector:
             GreedyByScore(),
             GreedyByExpectedScore(),
             GreedyByCoverage(),
+            ExactBranchAndBound(),
             LocalRepair(),
         )
 

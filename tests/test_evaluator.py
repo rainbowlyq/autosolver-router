@@ -20,7 +20,7 @@ def make_instance():
 
 
 class EvaluatorTests(unittest.TestCase):
-    def test_evaluate_solution_counts_covered_tasks_and_score(self):
+    def test_evaluate_solution_counts_expected_coverage_and_score(self):
         instance = make_instance()
         solution = Solution(
             assignments=(
@@ -32,11 +32,15 @@ class EvaluatorTests(unittest.TestCase):
         evaluation = evaluate_solution(instance, solution)
 
         self.assertTrue(evaluation.valid)
-        self.assertEqual(evaluation.covered_tasks, 2)
-        self.assertEqual(evaluation.total_score, 22.0)
+        self.assertAlmostEqual(evaluation.covered_tasks, 1.0)
+        self.assertAlmostEqual(evaluation.expected_covered_tasks, 1.0)
+        self.assertAlmostEqual(evaluation.expected_coverage_rate, 1 / 3)
+        self.assertAlmostEqual(evaluation.total_score, 11.0)
+        self.assertAlmostEqual(evaluation.expected_total_score, 11.0)
+        self.assertAlmostEqual(evaluation.raw_total_score, 22.0)
         self.assertEqual(evaluation.assignment_count, 2)
 
-    def test_evaluate_solution_rejects_duplicate_tasks(self):
+    def test_evaluate_solution_allows_duplicate_tasks_and_combines_acceptance_probability(self):
         instance = make_instance()
         solution = Solution(
             assignments=(
@@ -47,8 +51,13 @@ class EvaluatorTests(unittest.TestCase):
 
         evaluation = evaluate_solution(instance, solution)
 
-        self.assertFalse(evaluation.valid)
-        self.assertIn("duplicate task T0001", evaluation.errors)
+        self.assertTrue(evaluation.valid)
+        self.assertNotIn("duplicate task T0001", evaluation.errors)
+        self.assertAlmostEqual(evaluation.covered_tasks, 1.25)
+        self.assertAlmostEqual(evaluation.expected_covered_tasks, 1.25)
+        self.assertAlmostEqual(evaluation.total_score, 20.0)
+        self.assertAlmostEqual(evaluation.expected_total_score, 20.0)
+        self.assertAlmostEqual(evaluation.raw_total_score, 40.0)
 
     def test_evaluate_solution_rejects_duplicate_couriers(self):
         instance = make_instance()

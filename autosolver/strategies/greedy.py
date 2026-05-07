@@ -13,7 +13,6 @@ def build_greedy_solution(
     ordered_candidates: Iterable[Candidate],
     budget: TimeBudget,
 ) -> Solution:
-    used_tasks: set[str] = set()
     used_couriers: set[str] = set()
     assignments: list[Assignment] = []
 
@@ -22,12 +21,9 @@ def build_greedy_solution(
             break
         if candidate.courier_id in used_couriers:
             continue
-        if any(task_id in used_tasks for task_id in candidate.task_ids):
-            continue
 
         assignments.append(Assignment.from_candidate(candidate))
         used_couriers.add(candidate.courier_id)
-        used_tasks.update(candidate.task_ids)
 
     return Solution(assignments=tuple(assignments))
 
