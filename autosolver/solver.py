@@ -22,7 +22,7 @@ class AutoSolver:
             return Solution.empty()
 
         budget = TimeBudget(self.time_limit_seconds)
-        incumbent = None
+        incumbent = Solution.empty()
 
         while not budget.expired():
             strategy = self.selector.next_strategy(tuple(self.history), budget)
@@ -59,4 +59,4 @@ class AutoSolver:
                     )
                 )
 
-        return incumbent or Solution.empty()
+        return incumbent
