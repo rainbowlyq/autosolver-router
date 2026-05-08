@@ -88,16 +88,15 @@ class StrategyTests(unittest.TestCase):
 
         self.assertTrue(evaluate_solution(instance, repaired).valid)
 
-    def test_exact_branch_and_bound_finds_small_optimal_solution(self):
+    def test_exact_branch_and_bound_minimizes_penalized_score(self):
         exact_strategy_class = getattr(strategies, "ExactBranchAndBound", None)
         self.assertIsNotNone(exact_strategy_class)
         instance = parse_problem(
             "\n".join(
                 [
                     "task_id_list\tcourier_id\ttotal_score\twillingness",
-                    "T0001\tC001\t1.0\t1.0",
-                    "T0001\tC002\t2.0\t1.0",
-                    "T0002\tC002\t100.0\t1.0",
+                    "T0001\tC001\t10.0\t1.0",
+                    "T0002\tC002\t500.0\t1.0",
                 ]
             )
         )
@@ -107,10 +106,10 @@ class StrategyTests(unittest.TestCase):
 
         evaluation = evaluate_solution(instance, solution)
         self.assertTrue(evaluation.valid)
-        self.assertAlmostEqual(evaluation.covered_tasks, 2.0)
+        self.assertAlmostEqual(evaluation.total_score, 110.0)
         self.assertEqual(
             {(assignment.task_id_list, assignment.courier_ids) for assignment in solution.assignments},
-            {("T0001", ("C001",)), ("T0002", ("C002",))},
+            {("T0001", ("C001",))},
         )
 
     def test_default_selector_includes_exact_branch_and_bound(self):

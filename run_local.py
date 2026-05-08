@@ -39,7 +39,12 @@ def print_eval_report(
         f"  期望覆盖:  {evaluation.expected_covered_tasks:.4f} / {total_tasks} "
         f"({evaluation.expected_coverage_rate:.2%})"
     )
-    print(f"  期望分数:  {evaluation.expected_total_score:.4f}")
+    print(f"  总分:      {evaluation.total_score:.4f}")
+    print(f"  分配成本:  {evaluation.assignment_cost:.4f}")
+    print(
+        f"  未分配罚分:{evaluation.unassigned_penalty:.4f} "
+        f"({evaluation.unassigned_count} * 100)"
+    )
     print(f"  原始分数:  {evaluation.raw_total_score:.4f}")
     print(f"  分配数:    {evaluation.assignment_count}")
     if evaluation.errors:
@@ -49,7 +54,7 @@ def print_eval_report(
     print()
     print("策略历史")
     print("-" * 80)
-    print(f"  {'#':<4} {'策略':<24} {'用时(s)':<6} {'有效':<6} {'改进':<6} {'期望覆盖':<10} {'期望分数':<12}")
+    print(f"  {'#':<4} {'策略':<24} {'用时(s)':<6} {'有效':<6} {'改进':<6} {'期望覆盖':<10} {'总分':<12}")
     print(f"  {'—'*4} {'—'*25} {'—'*10} {'—'*6} {'—'*6} {'—'*10} {'—'*12}")
     for i, record in enumerate(solver.history, 1):
         print(

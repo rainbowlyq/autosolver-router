@@ -20,7 +20,7 @@ def make_instance():
 
 
 class EvaluatorTests(unittest.TestCase):
-    def test_evaluate_solution_counts_expected_coverage_and_score(self):
+    def test_evaluate_solution_counts_expected_coverage_and_penalized_score(self):
         instance = make_instance()
         solution = Solution(
             assignments=(
@@ -35,8 +35,11 @@ class EvaluatorTests(unittest.TestCase):
         self.assertAlmostEqual(evaluation.covered_tasks, 1.0)
         self.assertAlmostEqual(evaluation.expected_covered_tasks, 1.0)
         self.assertAlmostEqual(evaluation.expected_coverage_rate, 1 / 3)
-        self.assertAlmostEqual(evaluation.total_score, 11.0)
-        self.assertAlmostEqual(evaluation.expected_total_score, 11.0)
+        self.assertAlmostEqual(evaluation.total_score, 211.0)
+        self.assertAlmostEqual(evaluation.expected_total_score, 211.0)
+        self.assertAlmostEqual(evaluation.assignment_cost, 111.0)
+        self.assertEqual(evaluation.unassigned_count, 1)
+        self.assertAlmostEqual(evaluation.unassigned_penalty, 100.0)
         self.assertAlmostEqual(evaluation.raw_total_score, 22.0)
         self.assertEqual(evaluation.assignment_count, 2)
 
@@ -55,8 +58,10 @@ class EvaluatorTests(unittest.TestCase):
         self.assertNotIn("duplicate task T0001", evaluation.errors)
         self.assertAlmostEqual(evaluation.covered_tasks, 1.25)
         self.assertAlmostEqual(evaluation.expected_covered_tasks, 1.25)
-        self.assertAlmostEqual(evaluation.total_score, 20.0)
-        self.assertAlmostEqual(evaluation.expected_total_score, 20.0)
+        self.assertAlmostEqual(evaluation.total_score, 220.0)
+        self.assertAlmostEqual(evaluation.expected_total_score, 220.0)
+        self.assertAlmostEqual(evaluation.assignment_cost, 120.0)
+        self.assertEqual(evaluation.unassigned_count, 1)
         self.assertAlmostEqual(evaluation.raw_total_score, 40.0)
 
     def test_evaluate_solution_rejects_duplicate_couriers(self):
@@ -73,21 +78,31 @@ class EvaluatorTests(unittest.TestCase):
         self.assertFalse(evaluation.valid)
         self.assertIn("duplicate courier C001", evaluation.errors)
 
-    def test_is_better_prioritizes_coverage_before_score(self):
-        instance = make_instance()
-        incumbent = Solution(assignments=(Assignment.from_candidate(instance.candidates[0]),))
-        candidate = Solution(assignments=(Assignment.from_candidate(instance.candidates[2]),))
+    def test_is_better_minimizes_penalized_score_before_coverage(self):
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001\tC001\t10.0\t1.0",
+                    "T0001,T0002\tC002\t300.0\t1.0",
+                ]
+            )
+        )
+        incumbent = Solution(assignments=(Assignment.from_candidate(instance.candidates[1]),))
+        candidate = Solution(assignments=(Assignment.from_candidate(instance.candidates[0]),))
 
         self.assertTrue(is_better_solution(instance, candidate, incumbent))
 
-    def test_is_better_uses_lower_score_when_coverage_ties(self):
+    def test_is_better_uses_lower_penalized_score(self):
         instance = make_instance()
-        incumbent = Solution(assignments=(Assignment.from_candidate(instance.candidates[2]),))
-        candidate = Solution(
+        incumbent = Solution(
             assignments=(
                 Assignment.from_candidate(instance.candidates[0]),
                 Assignment.from_candidate(instance.candidates[1]),
             )
+        )
+        candidate = Solution(
+            assignments=(Assignment.from_candidate(instance.candidates[2]),)
         )
 
         self.assertTrue(is_better_solution(instance, candidate, incumbent))

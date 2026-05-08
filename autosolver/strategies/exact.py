@@ -3,7 +3,7 @@ from time import perf_counter
 from typing import FrozenSet, NamedTuple, Optional, Tuple
 
 from autosolver.budget import TimeBudget
-from autosolver.evaluator import evaluate_solution
+from autosolver.evaluator import PENALTY_SCORE, candidate_assignment_cost, evaluate_solution
 from autosolver.models import Assignment, Candidate, ProblemInstance, Solution
 
 
@@ -11,7 +11,7 @@ class _Option(NamedTuple):
     candidate: Candidate
     task_indexes: Tuple[int, ...]
     acceptance_probability: float
-    expected_score: float
+    assignment_cost: float
 
 
 class _Metrics(NamedTuple):
@@ -44,7 +44,6 @@ class ExactBranchAndBound:
             return incumbent or Solution.empty()
 
         groups = _group_options_by_courier(instance)
-        suffix_reachable_tasks = _build_suffix_reachable_tasks(groups)
         best_solution = incumbent or Solution.empty()
         best_metrics = _solution_metrics(instance, best_solution)
         initial_miss_probabilities = tuple(1.0 for _ in instance.task_ids)
@@ -53,7 +52,8 @@ class ExactBranchAndBound:
             group_index: int,
             miss_probabilities: Tuple[float, ...],
             covered_tasks: float,
-            total_score: float,
+            assignment_cost: float,
+            assigned_task_indexes: FrozenSet[int],
             assignments: Tuple[Assignment, ...],
         ) -> None:
             nonlocal best_solution, best_metrics
@@ -61,20 +61,18 @@ class ExactBranchAndBound:
             if expired():
                 return
 
-            candidate_metrics = _state_metrics(covered_tasks, total_score, assignments)
+            candidate_metrics = _state_metrics(
+                covered_tasks,
+                assignment_cost,
+                assigned_task_indexes,
+                assignments,
+                len(instance.task_ids),
+            )
             if _is_better_metrics(candidate_metrics, best_metrics):
                 best_solution = Solution(assignments=assignments)
                 best_metrics = candidate_metrics
 
             if group_index >= len(groups):
-                return
-
-            upper_bound = _coverage_upper_bound(
-                covered_tasks,
-                miss_probabilities,
-                suffix_reachable_tasks[group_index],
-            )
-            if round(upper_bound, 12) < best_metrics.covered_tasks:
                 return
 
             for option in groups[group_index]:
@@ -93,7 +91,8 @@ class ExactBranchAndBound:
                     group_index + 1,
                     tuple(next_miss_probabilities),
                     next_covered_tasks,
-                    total_score + option.expected_score,
+                    assignment_cost + option.assignment_cost,
+                    assigned_task_indexes.union(option.task_indexes),
                     assignments + (Assignment.from_candidate(option.candidate),),
                 )
 
@@ -101,7 +100,8 @@ class ExactBranchAndBound:
                 group_index + 1,
                 miss_probabilities,
                 covered_tasks,
-                total_score,
+                assignment_cost,
+                assigned_task_indexes,
                 assignments,
             )
 
@@ -109,7 +109,8 @@ class ExactBranchAndBound:
             group_index=0,
             miss_probabilities=initial_miss_probabilities,
             covered_tasks=0.0,
-            total_score=0.0,
+            assignment_cost=0.0,
+            assigned_task_indexes=frozenset(),
             assignments=(),
         )
         return best_solution
@@ -128,15 +129,13 @@ def _group_options_by_courier(instance: ProblemInstance) -> Tuple[Tuple[_Option,
 
     for candidate in instance.candidates:
         acceptance_probability = _acceptance_probability(candidate)
-        if acceptance_probability <= 0.0:
-            continue
         task_indexes = tuple(task_index_by_id[task_id] for task_id in candidate.task_ids)
         options_by_courier[candidate.courier_id].append(
             _Option(
                 candidate=candidate,
                 task_indexes=task_indexes,
                 acceptance_probability=acceptance_probability,
-                expected_score=candidate.total_score * acceptance_probability,
+                assignment_cost=candidate_assignment_cost(candidate),
             )
         )
 
@@ -147,7 +146,7 @@ def _group_options_by_courier(instance: ProblemInstance) -> Tuple[Tuple[_Option,
                 options,
                 key=lambda option: (
                     -len(option.task_indexes),
-                    option.expected_score,
+                    option.assignment_cost,
                     option.candidate.task_id_list,
                     option.candidate.courier_id,
                     option.candidate.index,
@@ -169,30 +168,6 @@ def _group_options_by_courier(instance: ProblemInstance) -> Tuple[Tuple[_Option,
     )
 
 
-def _build_suffix_reachable_tasks(groups: Tuple[Tuple[_Option, ...], ...]) -> Tuple[FrozenSet[int], ...]:
-    suffix = [frozenset() for _ in range(len(groups) + 1)]
-    reachable = set()
-
-    for group_index in range(len(groups) - 1, -1, -1):
-        for option in groups[group_index]:
-            reachable.update(option.task_indexes)
-        suffix[group_index] = frozenset(reachable)
-
-    suffix[len(groups)] = frozenset()
-    return tuple(suffix)
-
-
-def _coverage_upper_bound(
-    covered_tasks: float,
-    miss_probabilities: Tuple[float, ...],
-    reachable_tasks: FrozenSet[int],
-) -> float:
-    return covered_tasks + sum(
-        miss_probabilities[task_index]
-        for task_index in reachable_tasks
-    )
-
-
 def _solution_metrics(instance: ProblemInstance, solution: Solution) -> _Metrics:
     evaluation = evaluate_solution(instance, solution)
     if not evaluation.valid:
@@ -204,7 +179,7 @@ def _solution_metrics(instance: ProblemInstance, solution: Solution) -> _Metrics
         )
     return _Metrics(
         covered_tasks=evaluation.expected_covered_tasks,
-        total_score=evaluation.expected_total_score,
+        total_score=evaluation.total_score,
         assignment_count=evaluation.assignment_count,
         signature=evaluation.signature,
     )
@@ -212,9 +187,13 @@ def _solution_metrics(instance: ProblemInstance, solution: Solution) -> _Metrics
 
 def _state_metrics(
     covered_tasks: float,
-    total_score: float,
+    assignment_cost: float,
+    assigned_task_indexes: FrozenSet[int],
     assignments: Tuple[Assignment, ...],
+    total_task_count: int,
 ) -> _Metrics:
+    unassigned_count = total_task_count - len(assigned_task_indexes)
+    total_score = assignment_cost + unassigned_count * PENALTY_SCORE
     return _Metrics(
         covered_tasks=round(covered_tasks, 12),
         total_score=round(total_score, 12),
@@ -229,8 +208,6 @@ def _state_metrics(
 
 
 def _is_better_metrics(candidate: _Metrics, incumbent: _Metrics) -> bool:
-    if candidate.covered_tasks != incumbent.covered_tasks:
-        return candidate.covered_tasks > incumbent.covered_tasks
     if candidate.total_score != incumbent.total_score:
         return candidate.total_score < incumbent.total_score
     if candidate.assignment_count != incumbent.assignment_count:
