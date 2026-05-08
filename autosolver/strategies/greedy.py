@@ -12,7 +12,6 @@ def build_greedy_solution(
     budget: TimeBudget,
 ) -> Solution:
     used_couriers = set()
-    task_batches = {}
     assignments = []
 
     for candidate in ordered_candidates:
@@ -20,17 +19,9 @@ def build_greedy_solution(
             break
         if candidate.courier_id in used_couriers:
             continue
-        if any(
-            task_id in task_batches
-            and candidate.task_id_list not in task_batches[task_id]
-            for task_id in candidate.task_ids
-        ):
-            continue
 
         assignments.append(Assignment.from_candidate(candidate))
         used_couriers.add(candidate.courier_id)
-        for task_id in candidate.task_ids:
-            task_batches.setdefault(task_id, set()).add(candidate.task_id_list)
 
     return Solution(assignments=tuple(assignments))
 

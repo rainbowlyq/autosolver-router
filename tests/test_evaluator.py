@@ -43,7 +43,7 @@ class EvaluatorTests(unittest.TestCase):
         self.assertAlmostEqual(evaluation.raw_total_score, 22.0)
         self.assertEqual(evaluation.assignment_count, 2)
 
-    def test_evaluate_solution_allows_duplicate_tasks_and_combines_acceptance_probability(self):
+    def test_evaluate_solution_allows_overlapping_task_batches(self):
         instance = make_instance()
         solution = Solution(
             assignments=(
@@ -58,11 +58,47 @@ class EvaluatorTests(unittest.TestCase):
         self.assertNotIn("duplicate task T0001", evaluation.errors)
         self.assertAlmostEqual(evaluation.covered_tasks, 1.25)
         self.assertAlmostEqual(evaluation.expected_covered_tasks, 1.25)
-        self.assertAlmostEqual(evaluation.total_score, 220.0)
-        self.assertAlmostEqual(evaluation.expected_total_score, 220.0)
-        self.assertAlmostEqual(evaluation.assignment_cost, 120.0)
+        self.assertAlmostEqual(evaluation.total_score, 270.0)
+        self.assertAlmostEqual(evaluation.expected_total_score, 270.0)
+        self.assertAlmostEqual(evaluation.assignment_cost, 170.0)
         self.assertEqual(evaluation.unassigned_count, 1)
         self.assertAlmostEqual(evaluation.raw_total_score, 40.0)
+
+    def test_evaluate_solution_combines_same_task_batch_couriers(self):
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001\tC001\t10.0\t0.5",
+                    "T0001\tC002\t20.0\t0.5",
+                ]
+            )
+        )
+        solution = Solution(
+            assignments=(
+                Assignment.from_candidate(instance.candidates[0]),
+                Assignment.from_candidate(instance.candidates[1]),
+            )
+        )
+
+        evaluation = evaluate_solution(instance, solution)
+
+        self.assertTrue(evaluation.valid)
+        self.assertAlmostEqual(evaluation.expected_covered_tasks, 0.75)
+        self.assertAlmostEqual(evaluation.assignment_cost, 36.25)
+        self.assertAlmostEqual(evaluation.total_score, 36.25)
+
+    def test_evaluate_solution_uses_task_count_for_bundle_rejection_penalty(self):
+        instance = make_instance()
+        solution = Solution(
+            assignments=(Assignment.from_candidate(instance.candidates[2]),)
+        )
+
+        evaluation = evaluate_solution(instance, solution)
+
+        self.assertTrue(evaluation.valid)
+        self.assertAlmostEqual(evaluation.assignment_cost, 115.0)
+        self.assertAlmostEqual(evaluation.total_score, 215.0)
 
     def test_evaluate_solution_rejects_duplicate_couriers(self):
         instance = make_instance()
@@ -94,7 +130,16 @@ class EvaluatorTests(unittest.TestCase):
         self.assertTrue(is_better_solution(instance, candidate, incumbent))
 
     def test_is_better_uses_lower_penalized_score(self):
-        instance = make_instance()
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001\tC001\t10.0\t0.5",
+                    "T0002\tC002\t12.0\t0.5",
+                    "T0001,T0002\tC003\t20.0\t0.5",
+                ]
+            )
+        )
         incumbent = Solution(
             assignments=(
                 Assignment.from_candidate(instance.candidates[0]),

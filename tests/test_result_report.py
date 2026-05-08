@@ -21,8 +21,63 @@ class ResultReportTests(unittest.TestCase):
 
         self.assertAlmostEqual(cost, 34.252452, places=6)
 
+    def test_recompute_detail_cost_scales_rejection_penalty_by_task_count(self):
+        detail = {
+            "task_id_list": "T0011,T0024",
+            "couriers": ["C001"],
+            "p_complete": 0.8704,
+            "expected_score": 23.147,
+            "cost": 46.0671,
+        }
+
+        cost = eval_report.recompute_detail_cost(detail)
+
+        self.assertAlmostEqual(cost, 46.0671488, places=6)
+
+    def test_analyze_result_payload_uses_penalty_score_for_invalid_cases(self):
+        payload = {
+            "avg_score": 155.0,
+            "success_count": 1,
+            "case_results": [
+                {
+                    "status": "ok",
+                    "case_file": "invalid.txt",
+                    "validity": False,
+                    "total_score": 0.0,
+                    "penalty_score": 300.0,
+                    "unassigned_count": 0,
+                    "detail": [],
+                    "errors": ["duplicate task"],
+                },
+                {
+                    "status": "ok",
+                    "case_file": "valid.txt",
+                    "validity": True,
+                    "total_score": 10.0,
+                    "unassigned_count": 0,
+                    "detail": [
+                        {
+                            "task_id_list": "T0001",
+                            "couriers": ["C001"],
+                            "p_complete": 1.0,
+                            "expected_score": 10.0,
+                            "cost": 10.0,
+                        }
+                    ],
+                },
+            ],
+        }
+
+        analysis = eval_report.analyze_result_payload(payload)
+
+        self.assertTrue(analysis["formula_matches"])
+        self.assertEqual(analysis["recomputed_avg_score"], 155.0)
+
     def test_analyze_result_payload_reproduces_example_scores(self):
-        payload = json.loads(Path("example.json").read_text(encoding="utf-8"))
+        path = Path("example.json")
+        if not path.exists():
+            path = Path("results/d4489e42b3234d199798f2215d28cd1e/response.json")
+        payload = json.loads(path.read_text(encoding="utf-8"))
 
         analysis = eval_report.analyze_result_payload(payload)
 

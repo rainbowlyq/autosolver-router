@@ -435,7 +435,7 @@ class EvaluatorTests(unittest.TestCase):
         self.assertEqual(evaluation.total_score, 22.0)
         self.assertEqual(evaluation.assignment_count, 2)
 
-    def test_evaluate_solution_rejects_duplicate_tasks(self):
+    def test_evaluate_solution_allows_duplicate_tasks(self):
         instance = make_instance()
         solution = Solution(
             assignments=(
@@ -446,8 +446,8 @@ class EvaluatorTests(unittest.TestCase):
 
         evaluation = evaluate_solution(instance, solution)
 
-        self.assertFalse(evaluation.valid)
-        self.assertIn("duplicate task T0001", evaluation.errors)
+        self.assertTrue(evaluation.valid)
+        self.assertNotIn("duplicate task T0001", evaluation.errors)
 
     def test_evaluate_solution_rejects_duplicate_couriers(self):
         instance = make_instance()
@@ -521,8 +521,8 @@ class Evaluation:
 
 def evaluate_solution(instance: ProblemInstance, solution: Solution) -> Evaluation:
     known_candidate_indexes = {candidate.index for candidate in instance.candidates}
-    used_tasks: set[str] = set()
     used_couriers: set[str] = set()
+    covered_tasks: set[str] = set()
     errors: list[str] = []
     total_score = 0.0
     signature: list[str] = []
@@ -535,10 +535,7 @@ def evaluate_solution(instance: ProblemInstance, solution: Solution) -> Evaluati
         total_score += candidate.total_score
         signature.append(f"{candidate.task_id_list}\t{','.join(assignment.courier_ids)}")
 
-        for task_id in candidate.task_ids:
-            if task_id in used_tasks:
-                errors.append(f"duplicate task {task_id}")
-            used_tasks.add(task_id)
+        covered_tasks.update(candidate.task_ids)
 
         for courier_id in assignment.courier_ids:
             if courier_id in used_couriers:
@@ -547,7 +544,7 @@ def evaluate_solution(instance: ProblemInstance, solution: Solution) -> Evaluati
 
     return Evaluation(
         valid=not errors,
-        covered_tasks=len(used_tasks),
+        covered_tasks=len(covered_tasks),
         total_score=round(total_score, 12),
         assignment_count=len(solution.assignments),
         signature=tuple(sorted(signature)),

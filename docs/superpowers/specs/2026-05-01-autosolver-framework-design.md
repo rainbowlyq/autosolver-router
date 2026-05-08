@@ -113,7 +113,7 @@ Parsing should tolerate empty lines and invalid numeric rows similarly to `examp
 Validity checks:
 
 - A courier may appear at most once.
-- A task may appear at most once across selected bundles.
+- Selected bundles may repeat or overlap because a task package can be assigned to multiple couriers.
 - Selected assignments must refer to known candidates.
 
 Objective comparison:
@@ -200,7 +200,7 @@ matching `example_solver.py`.
 Initial tests should cover:
 
 - Parser handles headers, empty lines, invalid rows, single-task bundles, and two-task bundles.
-- Evaluator rejects duplicate tasks and duplicate couriers.
+- Evaluator allows duplicate or overlapping task packages, and rejects duplicate couriers.
 - Objective comparison prioritizes coverage before score.
 - `solver.solve` returns the exact expected shape: a list of `(str, list[str])`.
 - The baseline strategy can produce a valid solution for `data/large_seed301.txt`.
@@ -233,7 +233,7 @@ Future improvements can add:
 
 ## Open Assumptions
 
-- The initial validity model follows the baseline: each task and courier is used at most once.
-- Although the problem statement mentions assigning one order to multiple couriers, the provided baseline does not do this. The first framework keeps the baseline constraint and leaves multi-courier assignment as a future extension.
+- The validity model treats courier uniqueness as the hard assignment constraint. Task packages come from input rows and may be assigned to multiple couriers.
+- The solver should not create new task bundles from individual orders; it should only choose among the provided `task_id_list` candidates.
 - `willingness` is used by heuristic strategies but is not part of the first objective comparison unless an official scoring function requires it.
 - The first submitted entry should remain dependency-light and avoid optional packages unless they clearly improve score under the 10 second limit.

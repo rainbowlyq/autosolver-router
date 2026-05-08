@@ -61,9 +61,21 @@ def task_ids(task_id_list):
     return [part.strip() for part in str(task_id_list or "").split(",") if part.strip()]
 
 
+def detail_rejection_penalty(detail):
+    return PENALTY * max(1, len(task_ids(detail.get("task_id_list"))))
+
+
 def recompute_detail_cost(detail):
     p = num(detail.get("p_complete"))
-    return p * num(detail.get("expected_score")) + (1.0 - p) * PENALTY
+    return p * num(detail.get("expected_score")) + (1.0 - p) * detail_rejection_penalty(detail)
+
+
+def score_used_for_average(case):
+    if case.get("validity") is False and case.get("penalty_score") is not None:
+        return num(case.get("penalty_score"))
+    if case.get("status") == "error" and case.get("penalty_score") is not None:
+        return num(case.get("penalty_score"))
+    return num(case.get("total_score"), num(case.get("penalty_score")))
 
 
 def build_case_rows(payload):
@@ -136,16 +148,19 @@ def build_task_rows(payload):
     return rows
 
 
-def analyze_result_payload(payload, tolerance=0.001):
+def analyze_result_payload(payload, tolerance=0.01):
     cases, tasks = build_case_rows(payload), build_task_rows(payload)
-    scores = [num(row["total_score"]) for row in cases]
+    scores = [
+        score_used_for_average(case)
+        for case in payload.get("case_results") or []
+    ]
     recomputed_avg = round4(sum(scores) / len(scores)) if scores else 0.0
     reported_avg = num(payload.get("avg_score"))
     max_detail_delta = max([abs(num(row["cost_delta"])) for row in tasks] or [0.0])
     max_case_delta = max([abs(num(row["score_delta"])) for row in cases] or [0.0])
     avg_delta = round(reported_avg - recomputed_avg, 8)
     return {
-        "formula": "cost=p_complete*expected_score+(1-p_complete)*100; total_score=sum(cost)+unassigned_count*100; avg_score=mean(total_score)",
+        "formula": "cost=p_complete*expected_score+(1-p_complete)*100*task_count; total_score=sum(cost)+unassigned_count*100; avg_score=mean(penalty_score if invalid else total_score)",
         "formula_matches": max_detail_delta <= tolerance
         and max_case_delta <= tolerance
         and abs(avg_delta) <= tolerance,

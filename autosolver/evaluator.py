@@ -1,4 +1,4 @@
-from typing import NamedTuple, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from autosolver.models import Candidate, ProblemInstance, Solution
 
@@ -6,18 +6,46 @@ from autosolver.models import Candidate, ProblemInstance, Solution
 PENALTY_SCORE = 100.0
 
 
-class Evaluation(NamedTuple):
-    valid: bool
-    expected_covered_tasks: float
-    expected_coverage_rate: float
-    expected_total_score: float
-    raw_total_score: float
-    assignment_cost: float
-    unassigned_count: int
-    unassigned_penalty: float
-    assignment_count: int
-    signature: Tuple[str, ...]
-    errors: Tuple[str, ...] = ()
+class Evaluation:
+    __slots__ = (
+        "valid",
+        "expected_covered_tasks",
+        "expected_coverage_rate",
+        "expected_total_score",
+        "raw_total_score",
+        "assignment_cost",
+        "unassigned_count",
+        "unassigned_penalty",
+        "assignment_count",
+        "signature",
+        "errors",
+    )
+
+    def __init__(
+        self,
+        valid: bool,
+        expected_covered_tasks: float,
+        expected_coverage_rate: float,
+        expected_total_score: float,
+        raw_total_score: float,
+        assignment_cost: float,
+        unassigned_count: int,
+        unassigned_penalty: float,
+        assignment_count: int,
+        signature: Tuple[str, ...],
+        errors: Tuple[str, ...] = (),
+    ) -> None:
+        self.valid = valid
+        self.expected_covered_tasks = expected_covered_tasks
+        self.expected_coverage_rate = expected_coverage_rate
+        self.expected_total_score = expected_total_score
+        self.raw_total_score = raw_total_score
+        self.assignment_cost = assignment_cost
+        self.unassigned_count = unassigned_count
+        self.unassigned_penalty = unassigned_penalty
+        self.assignment_count = assignment_count
+        self.signature = signature
+        self.errors = errors
 
     @property
     def covered_tasks(self) -> float:
@@ -36,7 +64,35 @@ def candidate_assignment_cost(candidate: Candidate) -> float:
     p_complete = _acceptance_probability(candidate)
     return (
         p_complete * candidate.total_score
-        + (1.0 - p_complete) * PENALTY_SCORE
+        + (1.0 - p_complete) * PENALTY_SCORE * len(candidate.task_ids)
+    )
+
+
+def _group_acceptance_probability(candidates: List[Candidate]) -> float:
+    miss_probability = 1.0
+    for candidate in candidates:
+        miss_probability *= 1.0 - _acceptance_probability(candidate)
+    return 1.0 - miss_probability
+
+
+def _group_expected_score(candidates: List[Candidate]) -> float:
+    total_probability = sum(_acceptance_probability(candidate) for candidate in candidates)
+    if total_probability <= 0.0:
+        return 0.0
+    return sum(
+        _acceptance_probability(candidate) * candidate.total_score
+        for candidate in candidates
+    ) / total_probability
+
+
+def _group_assignment_cost(candidates: List[Candidate]) -> float:
+    if not candidates:
+        return 0.0
+    p_complete = _group_acceptance_probability(candidates)
+    expected_score = _group_expected_score(candidates)
+    return (
+        p_complete * expected_score
+        + (1.0 - p_complete) * PENALTY_SCORE * len(candidates[0].task_ids)
     )
 
 
@@ -46,30 +102,36 @@ def evaluate_solution(instance: ProblemInstance, solution: Solution) -> Evaluati
     miss_probability_by_task = {task_id: 1.0 for task_id in instance.task_ids}
     used_couriers = set()
     assigned_tasks = set()
+    candidates_by_task_list = {}  # type: Dict[str, List[Candidate]]
+    courier_ids_by_task_list = {}  # type: Dict[str, List[str]]
     errors = []
-    assignment_cost = 0.0
     raw_total_score = 0.0
-    signature = []
 
     for assignment in solution.assignments:
         candidate = assignment.candidate
         if candidate.index not in known_candidate_indexes:
             errors.append(f"unknown candidate index {candidate.index}")
 
-        acceptance_probability = _acceptance_probability(candidate)
         raw_total_score += candidate.total_score
-        assignment_cost += candidate_assignment_cost(candidate)
-        signature.append(f"{candidate.task_id_list}\t{','.join(assignment.courier_ids)}")
-
-        for task_id in candidate.task_ids:
-            if task_id in known_tasks:
-                miss_probability_by_task[task_id] *= 1.0 - acceptance_probability
-                assigned_tasks.add(task_id)
+        candidates_by_task_list.setdefault(candidate.task_id_list, []).append(candidate)
+        courier_ids_by_task_list.setdefault(candidate.task_id_list, []).extend(assignment.courier_ids)
 
         for courier_id in assignment.courier_ids:
             if courier_id in used_couriers:
                 errors.append(f"duplicate courier {courier_id}")
             used_couriers.add(courier_id)
+
+    assignment_cost = 0.0
+    signature = []
+    for task_id_list, candidates in candidates_by_task_list.items():
+        assignment_cost += _group_assignment_cost(candidates)
+        group_acceptance_probability = _group_acceptance_probability(candidates)
+        signature.append(f"{task_id_list}\t{','.join(courier_ids_by_task_list[task_id_list])}")
+
+        for task_id in candidates[0].task_ids:
+            if task_id in known_tasks:
+                miss_probability_by_task[task_id] *= 1.0 - group_acceptance_probability
+                assigned_tasks.add(task_id)
 
     # Assumes independent acceptance events for couriers assigned to the same task.
     expected_covered_tasks = sum(

@@ -52,6 +52,24 @@ class StrategyTests(unittest.TestCase):
             [("T0001", ("C001",)), ("T0001", ("C002",))],
         )
 
+    def test_greedy_by_score_allows_overlapping_task_packages(self):
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001\tC001\t1.0\t0.5",
+                    "T0001,T0002\tC002\t2.0\t0.6",
+                ]
+            )
+        )
+
+        solution = GreedyByScore().run(instance, None, TimeBudget(1.0))
+
+        self.assertEqual(
+            [(assignment.task_id_list, assignment.courier_ids) for assignment in solution.assignments],
+            [("T0001", ("C001",)), ("T0001,T0002", ("C002",))],
+        )
+
     def test_greedy_variants_return_valid_solutions(self):
         instance = parse_problem(
             "\n".join(

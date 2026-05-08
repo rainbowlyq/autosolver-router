@@ -25,7 +25,7 @@ class AutoSolverTests(unittest.TestCase):
 
         evaluation = evaluate_solution(instance, solution)
         self.assertTrue(evaluation.valid)
-        self.assertAlmostEqual(evaluation.total_score, 23.5)
+        self.assertAlmostEqual(evaluation.total_score, 33.5)
         self.assertGreaterEqual(len(solver.history), 1)
 
     def test_autosolver_empty_input_returns_empty_solution(self):
