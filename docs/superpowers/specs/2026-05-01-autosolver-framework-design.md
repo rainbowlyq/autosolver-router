@@ -4,7 +4,7 @@ Date: 2026-05-01
 
 ## Context
 
-This project targets the AutoSolver competition described in `problem.md`.
+This project targets the AutoSolver competition described in `docs/problem.md`.
 The submitted solver must expose:
 
 ```python
@@ -58,7 +58,9 @@ AI-Hackathon-AutoSolver/
 ├─ example_solver.py
 ├─ solver.py
 ├─ run_local.py
-├─ problem.md
+├─ docs/
+│  ├─ superpowers/
+│  └─ problem.md
 ├─ data/
 │  ├─ large_seed301.txt
 │  └─ example_solution.txt
