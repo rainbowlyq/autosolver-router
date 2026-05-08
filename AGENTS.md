@@ -2,13 +2,21 @@
 
 这是一个用于 AI Hackathon 竞赛的 **AutoSolver**。项目目标是求解配送分配问题：给定配送任务、可用骑手，以及预先计算好的分数和接单概率，寻找一种最优分配方案，使按接单概率和未分配罚分计算出的总分最低。
 
-**竞赛约束：**
+## 竞赛约束
 - 每个测试用例限时 10 秒
 - 必须暴露 `solve(input_text: str) -> list`，返回 `[(task_id_list_str, [courier_id, ...]), ...]`
 - 输入为 TSV，列包括：`task_id_list`、`courier_id`、`total_score`、`willingness`
-- 每个任务包都来自输入中的 `task_id_list`，可以分配给多个骑手；任务包可能包含一个或多个订单，不需要也不允许求解器自行组包。骑手可能拒单，因此评估时会基于接单概率计算期望覆盖率和拒单成本，不能把任意分配都视为确定覆盖
-- 每个骑手最多只能被分配一次
-- 允许多任务候选项（例如 `T0001,T0002` 这样的任务包）
+- 每个任务包都来自输入中的 `task_id_list`；任务包可能包含一个或多个订单，不需要也不允许求解器自行组包。
+- 同一个订单（`task_id`）最多只能出现在一个已选任务包中；因此同一个任务包也不能被重复分配给多个骑手。
+- 骑手可能拒单，因此评估时会基于接单概率计算期望覆盖率和拒单成本，不能把任意分配都视为确定覆盖
+- 同一个骑手最多只能被分配给一个任务包
+
+## 评测环境约束
+
+- **Python 3.6**：评测环境为 Python 3.6，不支持该版本之后引入的语法特性（如 f-string `=` 调试语法、walrus operator 在部分上下文中的限制等）。
+- **纯标准库**：不允许引入任何第三方库，只能使用 Python 标准库。
+- **单文件提交**：评测环境仅支持单个 `.py` 脚本文件提交，不支持多文件模块导入。提交前需将所有代码合并为一个文件。
+- **禁止 `typing` 导入**：评测环境不支持导入 `typing` 库，所有类型注解需避免依赖 `typing`（如 `List`、`Tuple`、`Optional` 等），可使用 Python 3.6 内置语法（如 `list`、`tuple`）或不使用类型注解。
 
 ## 常用命令
 
@@ -24,13 +32,6 @@ uv run python run_local.py data/large_seed301.txt
 ```
 
 本项目使用 `uv` 管理依赖和运行。开发阶段的依赖通过 `uv add --dev <package>` 添加（例如 `uv add --dev pytest`）。本地开发测试统一使用 `uv run` 命令运行。
-
-## 评测环境约束
-
-- **Python 3.6**：评测环境为 Python 3.6，不支持该版本之后引入的语法特性（如 f-string `=` 调试语法、walrus operator 在部分上下文中的限制等）。
-- **纯标准库**：不允许引入任何第三方库，只能使用 Python 标准库。
-- **单文件提交**：评测环境仅支持单个 `.py` 脚本文件提交，不支持多文件模块导入。提交前需将所有代码合并为一个文件。
-- **禁止 `typing` 导入**：评测环境不支持导入 `typing` 库，所有类型注解需避免依赖 `typing`（如 `List`、`Tuple`、`Optional` 等），可使用 Python 3.6 内置语法（如 `list`、`tuple`）或不使用类型注解。
 
 ## 架构
 
@@ -55,7 +56,7 @@ uv run python run_local.py data/large_seed301.txt
 - `format_output_rows(output)` -> TSV 字符串，用于打印。
 
 **评估器**（`autosolver/evaluator.py`）：
-- `evaluate_solution(instance, solution)` -> `Evaluation`。检查解的有效性（相同 `task_id_list` 的多个骑手会合并为同一任务包批次；重复骑手和未知候选项索引无效；重复或重叠任务包本身不构成无效），并计算期望覆盖任务数、期望覆盖率、评估总分、已分配候选成本、未分配任务数、未分配罚分、原始已分配分数、分配数量和确定性签名。批次成本公式为 `cost = p_complete * expected_score + (1 - p_complete) * 100 * task_count`，未分配罚分为 `unassigned_count * 100`，总分为 `sum(detail.cost) + unassigned_penalty`。假设骑手接单事件相互独立时，一个任务包若被分配给接单概率为 `p1, p2, ...` 的多个骑手，其完成概率为 `1 - Π(1 - pi)`。
+- `evaluate_solution(instance, solution)` -> `Evaluation`。检查解的有效性（重复订单、重复骑手和未知候选项索引无效），并计算期望覆盖任务数、期望覆盖率、评估总分、已分配候选成本、未分配任务数、未分配罚分、原始已分配分数、分配数量和确定性签名。候选成本公式为 `cost = p_complete * expected_score + (1 - p_complete) * 100 * task_count`，未分配罚分为 `unassigned_count * 100`，总分为 `sum(detail.cost) + unassigned_penalty`。
 - `is_better_solution(instance, candidate, incumbent)` -> `bool`。比较目标为更低的评估总分 -> 更少的分配数量 -> 字典序更小的签名。无效解永远不会胜出，空解也会按同一套未分配罚分参与比较。
 
 **时间预算**（`autosolver/budget.py`）：
@@ -92,7 +93,7 @@ uv run python run_local.py data/large_seed301.txt
 
 ## 关键设计决策
 
-- 目标函数最小化评估总分：每个输出批次的成本为 `p_complete * expected_score + (1 - p_complete) * 100 * task_count`，未被任何有效批次触达的任务额外罚 `100`，最终总分为批次成本之和加未分配罚分。总分相同时，再用更少分配数量和确定性签名打破平局。任务包允许被多个骑手重复指派；相同 `task_id_list` 的多个骑手会合并成一个批次并按合成接单概率计算。唯一硬约束是每个骑手最多分配一个任务包。
+- 目标函数最小化评估总分：每个已选候选的成本为 `p_complete * expected_score + (1 - p_complete) * 100 * task_count`，未被任何有效候选触达的任务额外罚 `100`，最终总分为候选成本之和加未分配罚分。总分相同时，再用更少分配数量和确定性签名打破平局。硬约束是每个骑手最多分配一个任务包，且每个订单最多被一个已选任务包覆盖。
 - 框架是确定性的（不使用随机性），并且只依赖 Python 标准库。
 - 策略选择是顺序且基于历史的，不是自适应的。选择器只会按顺序对每个策略尝试一次。
 - 大型测试用例（`data/large_seed301.txt`）约有 33,780 个候选项、40 个任务、80 个骑手，任务包大小为 1 或 2。

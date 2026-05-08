@@ -101,6 +101,7 @@ def evaluate_solution(instance: ProblemInstance, solution: Solution) -> Evaluati
     known_tasks = set(instance.task_ids)
     miss_probability_by_task = {task_id: 1.0 for task_id in instance.task_ids}
     used_couriers = set()
+    used_tasks = set()
     assigned_tasks = set()
     candidates_by_task_list = {}  # type: Dict[str, List[Candidate]]
     courier_ids_by_task_list = {}  # type: Dict[str, List[str]]
@@ -115,6 +116,11 @@ def evaluate_solution(instance: ProblemInstance, solution: Solution) -> Evaluati
         raw_total_score += candidate.total_score
         candidates_by_task_list.setdefault(candidate.task_id_list, []).append(candidate)
         courier_ids_by_task_list.setdefault(candidate.task_id_list, []).extend(assignment.courier_ids)
+
+        for task_id in candidate.task_ids:
+            if task_id in used_tasks:
+                errors.append(f"duplicate task {task_id}")
+            used_tasks.add(task_id)
 
         for courier_id in assignment.courier_ids:
             if courier_id in used_couriers:

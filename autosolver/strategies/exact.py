@@ -96,6 +96,8 @@ class ExactBranchAndBound:
             for option in groups[group_index]:
                 if expired():
                     return
+                if any(task_index in assigned_task_indexes for task_index in option.task_indexes):
+                    continue
                 next_miss_probabilities = list(miss_probabilities)
                 next_covered_tasks = covered_tasks
                 miss_multiplier = 1.0 - option.acceptance_probability

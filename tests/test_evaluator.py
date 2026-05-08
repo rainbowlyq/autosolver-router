@@ -43,7 +43,7 @@ class EvaluatorTests(unittest.TestCase):
         self.assertAlmostEqual(evaluation.raw_total_score, 22.0)
         self.assertEqual(evaluation.assignment_count, 2)
 
-    def test_evaluate_solution_allows_overlapping_task_batches(self):
+    def test_evaluate_solution_rejects_overlapping_task_batches(self):
         instance = make_instance()
         solution = Solution(
             assignments=(
@@ -54,8 +54,8 @@ class EvaluatorTests(unittest.TestCase):
 
         evaluation = evaluate_solution(instance, solution)
 
-        self.assertTrue(evaluation.valid)
-        self.assertNotIn("duplicate task T0001", evaluation.errors)
+        self.assertFalse(evaluation.valid)
+        self.assertIn("duplicate task T0001", evaluation.errors)
         self.assertAlmostEqual(evaluation.covered_tasks, 1.25)
         self.assertAlmostEqual(evaluation.expected_covered_tasks, 1.25)
         self.assertAlmostEqual(evaluation.total_score, 270.0)
@@ -64,7 +64,7 @@ class EvaluatorTests(unittest.TestCase):
         self.assertEqual(evaluation.unassigned_count, 1)
         self.assertAlmostEqual(evaluation.raw_total_score, 40.0)
 
-    def test_evaluate_solution_combines_same_task_batch_couriers(self):
+    def test_evaluate_solution_rejects_same_task_batch_multiple_couriers(self):
         instance = parse_problem(
             "\n".join(
                 [
@@ -83,7 +83,8 @@ class EvaluatorTests(unittest.TestCase):
 
         evaluation = evaluate_solution(instance, solution)
 
-        self.assertTrue(evaluation.valid)
+        self.assertFalse(evaluation.valid)
+        self.assertIn("duplicate task T0001", evaluation.errors)
         self.assertAlmostEqual(evaluation.expected_covered_tasks, 0.75)
         self.assertAlmostEqual(evaluation.assignment_cost, 36.25)
         self.assertAlmostEqual(evaluation.total_score, 36.25)

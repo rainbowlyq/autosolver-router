@@ -34,7 +34,7 @@ class StrategyTests(unittest.TestCase):
             [("T0003", ("C001",)), ("T0001,T0002", ("C002",))],
         )
 
-    def test_greedy_by_score_allows_multiple_couriers_for_same_task(self):
+    def test_greedy_by_score_assigns_each_order_at_most_once(self):
         instance = parse_problem(
             "\n".join(
                 [
@@ -49,10 +49,10 @@ class StrategyTests(unittest.TestCase):
 
         self.assertEqual(
             [(assignment.task_id_list, assignment.courier_ids) for assignment in solution.assignments],
-            [("T0001", ("C001",)), ("T0001", ("C002",))],
+            [("T0001", ("C001",))],
         )
 
-    def test_greedy_by_score_allows_overlapping_task_packages(self):
+    def test_greedy_by_score_skips_overlapping_task_packages(self):
         instance = parse_problem(
             "\n".join(
                 [
@@ -67,7 +67,7 @@ class StrategyTests(unittest.TestCase):
 
         self.assertEqual(
             [(assignment.task_id_list, assignment.courier_ids) for assignment in solution.assignments],
-            [("T0001", ("C001",)), ("T0001,T0002", ("C002",))],
+            [("T0001", ("C001",))],
         )
 
     def test_greedy_variants_return_valid_solutions(self):
@@ -88,6 +88,50 @@ class StrategyTests(unittest.TestCase):
                 evaluation = evaluate_solution(instance, solution)
                 self.assertTrue(evaluation.valid)
                 self.assertGreaterEqual(evaluation.covered_tasks, 1)
+
+    def test_greedy_variants_assign_each_order_at_most_once(self):
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001\tC001\t1.0\t1.0",
+                    "T0001\tC002\t2.0\t1.0",
+                    "T0002\tC003\t3.0\t1.0",
+                ]
+            )
+        )
+
+        for strategy in (GreedyByExpectedScore(), GreedyByCoverage()):
+            with self.subTest(strategy=strategy.name):
+                solution = strategy.run(instance, None, TimeBudget(1.0))
+                task_package_counts = {}
+                for assignment in solution.assignments:
+                    task_package_counts[assignment.task_id_list] = (
+                        task_package_counts.get(assignment.task_id_list, 0) + 1
+                    )
+
+                self.assertEqual(task_package_counts["T0001"], 1)
+
+    def test_greedy_variants_skip_overlapping_task_packages(self):
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001\tC001\t1.0\t1.0",
+                    "T0001,T0002\tC002\t2.0\t1.0",
+                    "T0003\tC003\t3.0\t1.0",
+                ]
+            )
+        )
+
+        for strategy in (GreedyByExpectedScore(), GreedyByCoverage()):
+            with self.subTest(strategy=strategy.name):
+                solution = strategy.run(instance, None, TimeBudget(1.0))
+                assigned_tasks = []
+                for assignment in solution.assignments:
+                    assigned_tasks.extend(assignment.task_ids)
+
+                self.assertEqual(len(assigned_tasks), len(set(assigned_tasks)))
 
     def test_local_repair_keeps_or_improves_valid_incumbent(self):
         instance = parse_problem(

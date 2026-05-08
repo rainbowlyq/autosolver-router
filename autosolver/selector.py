@@ -7,7 +7,9 @@ from autosolver.strategies import (
     GreedyByCoverage,
     GreedyByExpectedScore,
     GreedyByScore,
+    GreedyCoverageAware,
     LocalRepair,
+    ReinforceGreedy,
     Strategy,
 )
 
@@ -18,6 +20,8 @@ class StrategySelector:
             GreedyByScore(),
             GreedyByExpectedScore(),
             GreedyByCoverage(),
+            GreedyCoverageAware(),
+            ReinforceGreedy(),
             ExactBranchAndBound(),
             LocalRepair(),
         )
