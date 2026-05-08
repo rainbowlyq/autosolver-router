@@ -1,6 +1,7 @@
 import importlib.util
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
 
 from solver import solve as project_solve
@@ -24,6 +25,17 @@ def load_module(path):
 
 
 class PackScriptTests(unittest.TestCase):
+    def test_default_output_path_uses_timestamp_suffix(self):
+        from pack import default_output_path
+
+        project_root = Path("project")
+        output_path = default_output_path(
+            project_root=project_root,
+            now=datetime(2026, 5, 8, 14, 3, 9),
+        )
+
+        self.assertEqual(output_path, project_root / "dist" / "solver_0508140309.py")
+
     def test_pack_generates_single_file_solver_from_template(self):
         from pack import pack_solver
 
@@ -54,6 +66,7 @@ class PackScriptTests(unittest.TestCase):
             self.assertTrue(result.strip_hints_applied, result.strip_hints_error)
             self.assertNotIn("from typing import", generated)
             self.assertNotIn("NamedTuple", generated)
+            self.assertNotIn("namedtuple", generated)
             self.assertNotIn("->", generated)
 
 

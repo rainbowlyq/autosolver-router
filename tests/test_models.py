@@ -1,5 +1,6 @@
 import unittest
 
+from autosolver.evaluator import evaluate_solution
 from autosolver.models import Assignment, Candidate, ProblemInstance, Solution
 
 
@@ -50,6 +51,26 @@ class ModelTests(unittest.TestCase):
         solution = Solution.empty()
 
         self.assertEqual(solution.assignments, ())
+
+    def test_models_are_not_tuple_subclasses(self):
+        candidate = Candidate(
+            index=0,
+            task_id_list="T0001",
+            task_ids=("T0001",),
+            courier_id="C001",
+            total_score=10.0,
+            willingness=0.5,
+        )
+        instance = ProblemInstance.from_candidates((candidate,))
+        assignment = Assignment.from_candidate(candidate)
+        solution = Solution(assignments=(assignment,))
+        evaluation = evaluate_solution(instance, solution)
+
+        self.assertNotIsInstance(candidate, tuple)
+        self.assertNotIsInstance(instance, tuple)
+        self.assertNotIsInstance(assignment, tuple)
+        self.assertNotIsInstance(solution, tuple)
+        self.assertNotIsInstance(evaluation, tuple)
 
 
 if __name__ == "__main__":

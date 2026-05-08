@@ -1,24 +1,42 @@
 from collections import defaultdict
 from time import perf_counter
-from typing import FrozenSet, NamedTuple, Optional, Tuple
+from typing import FrozenSet, Optional, Tuple
 
 from autosolver.budget import TimeBudget
 from autosolver.evaluator import PENALTY_SCORE, candidate_assignment_cost, evaluate_solution
 from autosolver.models import Assignment, Candidate, ProblemInstance, Solution
 
 
-class _Option(NamedTuple):
-    candidate: Candidate
-    task_indexes: Tuple[int, ...]
-    acceptance_probability: float
-    assignment_cost: float
+class _Option:
+    __slots__ = ("candidate", "task_indexes", "acceptance_probability", "assignment_cost")
+
+    def __init__(
+        self,
+        candidate: Candidate,
+        task_indexes: Tuple[int, ...],
+        acceptance_probability: float,
+        assignment_cost: float,
+    ) -> None:
+        self.candidate = candidate
+        self.task_indexes = task_indexes
+        self.acceptance_probability = acceptance_probability
+        self.assignment_cost = assignment_cost
 
 
-class _Metrics(NamedTuple):
-    covered_tasks: float
-    total_score: float
-    assignment_count: int
-    signature: Tuple[str, ...]
+class _Metrics:
+    __slots__ = ("covered_tasks", "total_score", "assignment_count", "signature")
+
+    def __init__(
+        self,
+        covered_tasks: float,
+        total_score: float,
+        assignment_count: int,
+        signature: Tuple[str, ...],
+    ) -> None:
+        self.covered_tasks = covered_tasks
+        self.total_score = total_score
+        self.assignment_count = assignment_count
+        self.signature = signature
 
 
 class ExactBranchAndBound:

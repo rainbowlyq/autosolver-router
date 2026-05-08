@@ -1,8 +1,8 @@
 # Auto-generated submission template for pack.py.
 # Imports are centralized here because the packed solver must be a single file.
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from time import perf_counter
-from typing import Callable, Dict, FrozenSet, Iterable, List, NamedTuple, Optional, Tuple
+from typing import Callable, Dict, FrozenSet, Iterable, List, Optional, Tuple
 
 
 # PACK: autosolver/models.py
