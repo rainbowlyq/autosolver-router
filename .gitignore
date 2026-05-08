@@ -7,3 +7,4 @@ __pycache__/
 .trash/
 .idea/
 results/
+data/generated/
