@@ -66,12 +66,11 @@ def run_benchmark():
         instance = parse_problem(input_text)
         assignments = []
         for task_id_list_str, courier_ids in output:
-            task_ids = tuple(t.strip() for t in task_id_list_str.split(","))
-            # Find matching candidate index
-            for cand in instance.candidates:
-                if cand.task_id_list == task_id_list_str and cand.courier_id == courier_ids[0]:
-                    assignments.append(Assignment(candidate=cand, courier_ids=tuple(courier_ids)))
-                    break
+            for courier_id in courier_ids:
+                for cand in instance.candidates:
+                    if cand.task_id_list == task_id_list_str and cand.courier_id == courier_id:
+                        assignments.append(Assignment(candidate=cand, courier_ids=(courier_id,)))
+                        break
         solution = Solution(assignments=tuple(assignments))
         ev = evaluate_solution(instance, solution)
 
