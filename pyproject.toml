@@ -5,3 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.6,<3.7"
 dependencies = []
+
+[dependency-groups]
+dev = [
+    "stickytape>=0.2.1",
+    "strip-hints>=0.1.13",
+]

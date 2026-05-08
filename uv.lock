@@ -1,0 +1,52 @@
+version = 1
+revision = 3
+requires-python = "==3.6.*"
+
+[[package]]
+name = "ai-hackathon-autosolver"
+version = "0.1.0"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "stickytape" },
+    { name = "strip-hints" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "stickytape", specifier = ">=0.2.1" },
+    { name = "strip-hints", specifier = ">=0.1.13" },
+]
+
+[[package]]
+name = "stickytape"
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/61/8c/59e35d7b75129ad81544c40922b13a9cfff111b67a4e01829044e1080dad/stickytape-0.2.1.tar.gz", hash = "sha256:9bbdd5dabed633ffde36bb7f656ee0cb55aeae9f87d9c95e377a06bf1ba7df8d", size = 6301, upload-time = "2021-01-29T21:34:07.625Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/18/20/d44f0e1acbabcd805e3165d143a37cfd575793082635f62a2180524be180/stickytape-0.2.1-py3-none-any.whl", hash = "sha256:66046dedac42484a352d87c12bc4272e4e222260a41f6e1fcbb29876c018e543", size = 8055, upload-time = "2021-01-29T21:34:09.797Z" },
+]
+
+[[package]]
+name = "strip-hints"
+version = "0.1.13"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "wheel" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f2/af/17ec9e52446330f60752687c7bc6328a68cb1aefe940f6d919a282b6a720/strip_hints-0.1.13.tar.gz", hash = "sha256:1feaebde61269ba0dea1e7f093df7ff9d4df4980cce7e3c22ed6d86ae43dbd06", size = 30332, upload-time = "2025-02-21T01:33:20.307Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/43/93828236ade737789fc5a85cf2cdc363c4e2694a2afff9e7bb9e7590214e/strip_hints-0.1.13-py3-none-any.whl", hash = "sha256:7ba1b07a193b1cc843fd87f21072202404c25dbc42d3222ac32b2bce4b196c8a", size = 23259, upload-time = "2025-02-21T01:33:18.175Z" },
+]
+
+[[package]]
+name = "wheel"
+version = "0.37.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c0/6c/9f840c2e55b67b90745af06a540964b73589256cb10cc10057c87ac78fc2/wheel-0.37.1.tar.gz", hash = "sha256:e9a504e793efbca1b8e0e9cb979a249cf4a0a7b5b8c9e8b65a5e39d49529c1c4", size = 66376, upload-time = "2021-12-22T12:22:02.135Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/d6/003e593296a85fd6ed616ed962795b2f87709c3eee2bca4f6d0fe55c6d00/wheel-0.37.1-py2.py3-none-any.whl", hash = "sha256:4bdcd7d840138086126cd09254dc6195fb4fc6f01c050a1d7236f2630db1d22a", size = 35301, upload-time = "2021-12-22T12:22:00.742Z" },
+]
