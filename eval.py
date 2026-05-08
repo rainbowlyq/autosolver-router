@@ -1,6 +1,7 @@
 import argparse
 import csv
 import json
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -192,9 +193,19 @@ def write_csv(path, columns, rows):
         writer.writerows(rows)
 
 
-def save_result_outputs(payload, output_dir=Path("results"), jobid=None):
+def _parse_ts(queued_at):
+    if not queued_at:
+        return datetime.now().strftime("%Y%m%d_%H%M%S")
+    try:
+        return datetime.strptime(str(queued_at).strip(), "%Y-%m-%d %H:%M:%S").strftime("%Y%m%d_%H%M%S")
+    except ValueError:
+        return str(queued_at).strip().replace(" ", "_").replace(":", "").replace("-", "")
+
+
+def save_result_outputs(payload, output_dir=Path("results/judge"), jobid=None):
     jobid = str(jobid or payload.get("job_id") or "result")
-    out = Path(output_dir) / jobid
+    ts = _parse_ts(payload.get("queued_at"))
+    out = Path(output_dir) / ts / jobid
     analysis = analyze_result_payload(payload)
     paths = {
         "json_path": out / "response.json",
@@ -213,7 +224,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Fetch and parse hackathon result JSON.")
     parser.add_argument("jobid", nargs="?", help="job id for /result/{jobid}")
     parser.add_argument("--input-json", type=Path, help="parse local response JSON instead of fetching")
-    parser.add_argument("--output-dir", type=Path, default=Path("results"))
+    parser.add_argument("--output-dir", type=Path, default=Path("results/judge"))
     parser.add_argument("--base-url", default=BASE_URL)
     parser.add_argument("--timeout", type=float, default=30.0)
     return parser.parse_args()
