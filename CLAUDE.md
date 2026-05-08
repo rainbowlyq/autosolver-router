@@ -23,7 +23,14 @@ uv run python -m unittest tests.test_evaluator -v
 uv run python run_local.py data/large_seed301.txt
 ```
 
-本项目使用 `uv` 管理依赖。开发依赖：`pytest>=9.0.3`。
+本项目使用 `uv` 管理依赖和运行。开发阶段的依赖通过 `uv add --dev <package>` 添加（例如 `uv add --dev pytest`）。本地开发测试统一使用 `uv run` 命令运行。
+
+## 评测环境约束
+
+- **Python 3.6**：评测环境为 Python 3.6，不支持该版本之后引入的语法特性（如 f-string `=` 调试语法、walrus operator 在部分上下文中的限制等）。
+- **纯标准库**：不允许引入任何第三方库，只能使用 Python 标准库。
+- **单文件提交**：评测环境仅支持单个 `.py` 脚本文件提交，不支持多文件模块导入。提交前需将所有代码合并为一个文件。
+- **禁止 `typing` 导入**：评测环境不支持导入 `typing` 库，所有类型注解需避免依赖 `typing`（如 `List`、`Tuple`、`Optional` 等），可使用 Python 3.6 内置语法（如 `list`、`tuple`）或不使用类型注解。
 
 ## 架构
 
@@ -85,7 +92,6 @@ uv run python run_local.py data/large_seed301.txt
 
 ## 关键设计决策
 
-- 所有数据类都使用 `frozen=True, slots=True`，以保证不可变性并提升内存效率。
 - 目标函数采用字典序：最大化期望覆盖任务数 -> 最小化期望总分数 -> 最小化分配数量 -> 确定性地打破平局。重复任务分配是有效的，因为它只会按骑手接单概率以概率方式提升覆盖率。
 - 框架是确定性的（不使用随机性），并且只依赖 Python 标准库。
 - 策略选择是顺序且基于历史的，不是自适应的。选择器只会按顺序对每个策略尝试一次。
