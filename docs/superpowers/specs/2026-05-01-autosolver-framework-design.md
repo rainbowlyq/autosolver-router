@@ -113,7 +113,7 @@ Parsing should tolerate empty lines and invalid numeric rows similarly to `examp
 Validity checks:
 
 - A courier may appear at most once.
-- A task may appear at most once across selected bundles.
+- A task may belong to at most one selected bundle, but that same bundle may be assigned to multiple couriers. Selecting `T0001,T0002` and `T0001,T0003` together is invalid because `T0001` belongs to two different bundles.
 - Selected assignments must refer to known candidates.
 
 Objective comparison:
@@ -200,7 +200,7 @@ matching `example_solver.py`.
 Initial tests should cover:
 
 - Parser handles headers, empty lines, invalid rows, single-task bundles, and two-task bundles.
-- Evaluator rejects duplicate tasks and duplicate couriers.
+- Evaluator rejects duplicate couriers and duplicate tasks across different selected bundles, while allowing multiple couriers on the same selected bundle.
 - Objective comparison prioritizes coverage before score.
 - `solver.solve` returns the exact expected shape: a list of `(str, list[str])`.
 - The baseline strategy can produce a valid solution for `data/large_seed301.txt`.

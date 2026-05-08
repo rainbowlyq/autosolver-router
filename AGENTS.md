@@ -7,7 +7,7 @@
 - 必须暴露 `solve(input_text: str) -> list`，返回 `[(task_id_list_str, [courier_id, ...]), ...]`
 - 输入为 TSV，列包括：`task_id_list`、`courier_id`、`total_score`、`willingness`
 - 每个任务包都来自输入中的 `task_id_list`；任务包可能包含一个或多个订单，不需要也不允许求解器自行组包。
-- 同一个订单（`task_id`）最多只能出现在一个已选任务包中；因此同一个任务包也不能被重复分配给多个骑手。
+- 同一个订单（`task_id`）最多只能归属于一个已选任务包；同一个任务包可以分配给多个骑手，覆盖概率按这些骑手的联合接单概率计算。例如 `T0001,T0002` 和 `T0001,T0003` 不能同时选中，因为 `T0001` 会被分配到两个不同任务包。
 - 骑手可能拒单，因此评估时会基于接单概率计算期望覆盖率和拒单成本，不能把任意分配都视为确定覆盖
 - 同一个骑手最多只能被分配给一个任务包
 
@@ -66,7 +66,7 @@ uv run python run_local.py data/large_seed301.txt
 - `Strategy` 是一个 `Protocol`，包含 `name: str` 属性，以及 `run(instance, incumbent, budget) -> Solution` 方法。
 
 **内置策略**（按 `StrategySelector` 注册顺序执行）：
-1. `GreedyByScore`（`autosolver/strategies/greedy.py`）：按 `(total_score, bundle_size, task_id_list, courier_id, index)` 排序候选项。使用共享的 `build_greedy_solution()` 构建贪心解，保证骑手唯一；任务允许被多个骑手重复覆盖。
+1. `GreedyByScore`（`autosolver/strategies/greedy.py`）：按 `(total_score, bundle_size, task_id_list, courier_id, index)` 排序候选项。使用共享的 `build_greedy_solution()` 构建贪心解，保证骑手唯一；同一任务包可由多个骑手尝试覆盖，但不同任务包之间不能复用订单。
 2. `GreedyByExpectedScore`（`autosolver/strategies/greedy_variants.py`）：按 `total_score / max(willingness, 0.01)` 排序。
 3. `GreedyByCoverage`（`autosolver/strategies/greedy_variants.py`）：优先选择更大的任务包，排序键为 `(-bundle_size, score_per_task, total_score, ...)`。
 4. `LocalRepair`（`autosolver/strategies/local_search.py`）：基于当前最优解尝试单点替换（移除一个分配，再插入一个不会复用剩余骑手的候选项）并按评估总分迭代改进。如果没有当前最优解，则回退到 `GreedyByScore`。
@@ -93,7 +93,7 @@ uv run python run_local.py data/large_seed301.txt
 
 ## 关键设计决策
 
-- 目标函数最小化评估总分：每个已选候选的成本为 `p_complete * expected_score + (1 - p_complete) * 100 * task_count`，未被任何有效候选触达的任务额外罚 `100`，最终总分为候选成本之和加未分配罚分。总分相同时，再用更少分配数量和确定性签名打破平局。硬约束是每个骑手最多分配一个任务包，且每个订单最多被一个已选任务包覆盖。
+- 目标函数最小化评估总分：同一任务包分配给多个骑手时，`p_complete = 1 - Π(1 - willingness)`，候选组成本为 `p_complete * expected_score + (1 - p_complete) * 100 * task_count`；未被任何有效候选触达的任务额外罚 `100`，最终总分为候选组成本之和加未分配罚分。总分相同时，再用更少分配数量和确定性签名打破平局。硬约束是每个骑手最多分配一个任务包，且每个订单最多归属于一个已选任务包。
 - 框架是确定性的（不使用随机性），并且只依赖 Python 标准库。
 - 策略选择是顺序且基于历史的，不是自适应的。选择器只会按顺序对每个策略尝试一次。
 - 大型测试用例（`data/large_seed301.txt`）约有 33,780 个候选项、40 个任务、80 个骑手，任务包大小为 1 或 2。

@@ -49,7 +49,7 @@ class StrategyTests(unittest.TestCase):
 
         self.assertEqual(
             [(assignment.task_id_list, assignment.courier_ids) for assignment in solution.assignments],
-            [("T0001", ("C001",))],
+            [("T0001", ("C002",))],
         )
 
     def test_greedy_by_score_skips_overlapping_task_packages(self):

@@ -1,6 +1,7 @@
 from typing import Callable, Iterable, Optional, Tuple
 
 from autosolver.budget import TimeBudget
+from autosolver.evaluator import candidate_assignment_cost
 from autosolver.models import Assignment, Candidate, ProblemInstance, Solution
 
 CandidateKey = Callable[[Candidate], Tuple]
@@ -42,7 +43,7 @@ class GreedyByScore:
         ordered = sorted(
             instance.candidates,
             key=lambda candidate: (
-                candidate.total_score,
+                candidate_assignment_cost(candidate),
                 len(candidate.task_ids),
                 candidate.task_id_list,
                 candidate.courier_id,

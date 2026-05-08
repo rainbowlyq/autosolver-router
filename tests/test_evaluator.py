@@ -64,13 +64,39 @@ class EvaluatorTests(unittest.TestCase):
         self.assertEqual(evaluation.unassigned_count, 1)
         self.assertAlmostEqual(evaluation.raw_total_score, 40.0)
 
-    def test_evaluate_solution_rejects_same_task_batch_multiple_couriers(self):
+    def test_evaluate_solution_allows_same_task_batch_multiple_couriers(self):
         instance = parse_problem(
             "\n".join(
                 [
                     "task_id_list\tcourier_id\ttotal_score\twillingness",
-                    "T0001\tC001\t10.0\t0.5",
-                    "T0001\tC002\t20.0\t0.5",
+                    "T0001,T0002\tC001\t10.0\t0.5",
+                    "T0001,T0002\tC002\t20.0\t0.5",
+                ]
+            )
+        )
+        solution = Solution(
+            assignments=(
+                Assignment.from_candidate(instance.candidates[0]),
+                Assignment.from_candidate(instance.candidates[1]),
+            )
+        )
+
+        evaluation = evaluate_solution(instance, solution)
+
+        self.assertTrue(evaluation.valid)
+        self.assertNotIn("duplicate task T0001", evaluation.errors)
+        self.assertNotIn("duplicate task T0002", evaluation.errors)
+        self.assertAlmostEqual(evaluation.expected_covered_tasks, 1.5)
+        self.assertAlmostEqual(evaluation.assignment_cost, 61.25)
+        self.assertAlmostEqual(evaluation.total_score, 61.25)
+
+    def test_evaluate_solution_rejects_same_task_assigned_through_different_batches(self):
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001,T0002\tC001\t10.0\t0.5",
+                    "T0001,T0003\tC002\t20.0\t0.5",
                 ]
             )
         )
@@ -85,9 +111,6 @@ class EvaluatorTests(unittest.TestCase):
 
         self.assertFalse(evaluation.valid)
         self.assertIn("duplicate task T0001", evaluation.errors)
-        self.assertAlmostEqual(evaluation.expected_covered_tasks, 0.75)
-        self.assertAlmostEqual(evaluation.assignment_cost, 36.25)
-        self.assertAlmostEqual(evaluation.total_score, 36.25)
 
     def test_evaluate_solution_uses_task_count_for_bundle_rejection_penalty(self):
         instance = make_instance()
