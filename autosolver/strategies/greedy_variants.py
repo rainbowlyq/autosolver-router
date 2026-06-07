@@ -140,7 +140,6 @@ class ReinforceGreedy:
 
         assignments = list(incumbent.assignments)
         used_couriers = {courier_id for a in assignments for courier_id in a.courier_ids}
-        assigned_tasks = {task_id for a in assignments for task_id in a.task_ids}
 
         candidates_by_courier = defaultdict(list)
         for candidate in instance.candidates:
@@ -161,8 +160,6 @@ class ReinforceGreedy:
                 if cid in used_couriers:
                     continue
                 for candidate in cands:
-                    if any(task_id in assigned_tasks for task_id in candidate.task_ids):
-                        continue
                     group = task_groups.get(candidate.task_id_list)
                     if group is None:
                         continue
@@ -176,7 +173,6 @@ class ReinforceGreedy:
             if best_candidate is not None and best_saving > 0:
                 assignments.append(Assignment.from_candidate(best_candidate))
                 used_couriers.add(best_candidate.courier_id)
-                assigned_tasks.update(best_candidate.task_ids)
                 task_groups.setdefault(best_candidate.task_id_list, []).append(best_candidate)
                 improved = True
 

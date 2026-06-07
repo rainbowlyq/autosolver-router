@@ -11,6 +11,7 @@ from autosolver.strategies import (
     GreedyByExpectedScore,
     GreedyByScore,
     LocalRepair,
+    ReinforceGreedy,
 )
 
 
@@ -150,6 +151,32 @@ class StrategyTests(unittest.TestCase):
 
         self.assertTrue(evaluate_solution(instance, repaired).valid)
 
+    def test_reinforce_greedy_adds_courier_to_existing_task_package(self):
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001\tC001\t10.0\t0.5",
+                    "T0001\tC002\t10.0\t0.5",
+                    "T0002\tC003\t10.0\t0.5",
+                ]
+            )
+        )
+        incumbent = GreedyByScore().run(instance, None, TimeBudget(1.0))
+
+        reinforced = ReinforceGreedy().run(instance, incumbent, TimeBudget(1.0))
+
+        evaluation = evaluate_solution(instance, reinforced)
+        self.assertTrue(evaluation.valid)
+        self.assertLess(
+            evaluation.total_score,
+            evaluate_solution(instance, incumbent).total_score,
+        )
+        self.assertIn(
+            ("T0001", ("C002",)),
+            [(assignment.task_id_list, assignment.courier_ids) for assignment in reinforced.assignments],
+        )
+
     def test_exact_branch_and_bound_minimizes_penalized_score(self):
         exact_strategy_class = getattr(strategies, "ExactBranchAndBound", None)
         self.assertIsNotNone(exact_strategy_class)
@@ -197,6 +224,7 @@ class StrategyTests(unittest.TestCase):
             )
 
         self.assertIn("exact_branch_and_bound", names)
+        self.assertLess(names.index("exact_branch_and_bound"), names.index("reinforce_greedy"))
         self.assertLess(names.index("exact_branch_and_bound"), names.index("local_repair"))
 
     def test_exact_branch_and_bound_respects_strategy_time_limit(self):

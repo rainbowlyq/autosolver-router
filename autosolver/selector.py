@@ -21,8 +21,8 @@ class StrategySelector:
             GreedyByExpectedScore(),
             GreedyByCoverage(),
             GreedyCoverageAware(),
-            ReinforceGreedy(),
             ExactBranchAndBound(),
+            ReinforceGreedy(),
             LocalRepair(),
         )
 
