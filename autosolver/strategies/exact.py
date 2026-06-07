@@ -60,6 +60,19 @@ class ExactBranchAndBound:
 
         if expired():
             return incumbent or Solution.empty()
+        if incumbent is not None and len(instance.courier_ids) <= 25:
+            incumbent_evaluation = evaluate_solution(instance, incumbent)
+            all_assignments_are_locally_useful = all(
+                candidate_assignment_cost(assignment.candidate)
+                <= PENALTY_SCORE * len(assignment.task_ids)
+                for assignment in incumbent.assignments
+            )
+            if (
+                incumbent_evaluation.valid
+                and incumbent_evaluation.unassigned_count == 0
+                and all_assignments_are_locally_useful
+            ):
+                return incumbent
 
         groups = _group_options_by_courier(instance)
         best_solution = incumbent or Solution.empty()

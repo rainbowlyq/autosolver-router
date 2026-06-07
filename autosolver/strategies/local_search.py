@@ -1,3 +1,4 @@
+from time import perf_counter
 from typing import Optional
 
 from autosolver.budget import TimeBudget
@@ -64,3 +65,75 @@ class LocalRepair:
                         best_candidate_solution = trial
 
         return best_candidate_solution
+
+
+class PairSwapRepair:
+    name = "pair_swap_repair"
+
+    def __init__(self, max_seconds: float = 2.0) -> None:
+        self.max_seconds = max(0.0, max_seconds)
+
+    def run(
+        self,
+        instance: ProblemInstance,
+        incumbent: Optional[Solution],
+        budget: TimeBudget,
+    ) -> Solution:
+        if incumbent is None or not incumbent.assignments:
+            return Solution.empty()
+
+        started_at = perf_counter()
+
+        def expired() -> bool:
+            return budget.expired() or perf_counter() - started_at >= self.max_seconds
+
+        candidate_by_output_key = {
+            (candidate.task_id_list, candidate.courier_id): candidate
+            for candidate in instance.candidates
+        }
+        best = incumbent
+        improved = True
+
+        while improved and not expired():
+            improved = False
+            best_trial = None
+            assignments = list(best.assignments)
+
+            for left_index in range(len(assignments)):
+                if expired():
+                    break
+                left = assignments[left_index]
+                left_courier = left.candidate.courier_id
+
+                for right_index in range(left_index + 1, len(assignments)):
+                    if expired():
+                        break
+                    right = assignments[right_index]
+                    if left.task_id_list == right.task_id_list:
+                        continue
+
+                    right_courier = right.candidate.courier_id
+                    replacement_left = candidate_by_output_key.get(
+                        (left.task_id_list, right_courier)
+                    )
+                    replacement_right = candidate_by_output_key.get(
+                        (right.task_id_list, left_courier)
+                    )
+                    if replacement_left is None or replacement_right is None:
+                        continue
+
+                    trial_assignments = list(assignments)
+                    trial_assignments[left_index] = Assignment.from_candidate(replacement_left)
+                    trial_assignments[right_index] = Assignment.from_candidate(replacement_right)
+                    trial = Solution(assignments=tuple(trial_assignments))
+
+                    if not is_better_solution(instance, trial, best):
+                        continue
+                    if best_trial is None or is_better_solution(instance, trial, best_trial):
+                        best_trial = trial
+
+            if best_trial is not None:
+                best = best_trial
+                improved = True
+
+        return best

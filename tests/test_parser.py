@@ -27,6 +27,21 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(instance.candidates[0].willingness, 0.8)
         self.assertEqual(instance.candidates[1].index, 4)
 
+    def test_parse_problem_keeps_first_duplicate_output_key(self):
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001,T0002\tC001\t20.0\t0.5",
+                    "T0001,T0002\tC001\t10.0\t0.9",
+                ]
+            )
+        )
+
+        self.assertEqual(len(instance.candidates), 1)
+        self.assertEqual(instance.candidates[0].total_score, 20.0)
+        self.assertEqual(instance.candidates[0].willingness, 0.5)
+
     def test_solution_to_output_matches_competition_shape(self):
         instance = parse_problem(
             "\n".join(

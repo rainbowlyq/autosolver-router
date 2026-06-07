@@ -7,6 +7,7 @@ def parse_problem(input_text: str) -> ProblemInstance:
     lines = input_text.strip().splitlines()
     start = 1 if lines and lines[0].startswith("task_id_list") else 0
     candidates = []
+    seen_output_keys = set()
 
     row_index = start
     for raw_line in lines[start:]:
@@ -31,12 +32,17 @@ def parse_problem(input_text: str) -> ProblemInstance:
         if not task_ids:
             continue
 
+        output_key = (task_id_list.strip(), courier_id.strip())
+        if output_key in seen_output_keys:
+            continue
+        seen_output_keys.add(output_key)
+
         candidates.append(
             Candidate(
                 index=current_index,
-                task_id_list=task_id_list.strip(),
+                task_id_list=output_key[0],
                 task_ids=task_ids,
-                courier_id=courier_id.strip(),
+                courier_id=output_key[1],
                 total_score=total_score,
                 willingness=willingness,
             )

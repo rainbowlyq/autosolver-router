@@ -1,6 +1,7 @@
 # Auto-generated submission template for pack.py.
 # Imports are centralized here because the packed solver must be a single file.
 from collections import defaultdict
+import heapq
 from time import perf_counter
 from typing import Callable, Dict, FrozenSet, Iterable, List, Optional, Tuple
 

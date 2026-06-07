@@ -2,15 +2,18 @@ import unittest
 
 from autosolver.budget import TimeBudget
 from autosolver.evaluator import evaluate_solution
-from autosolver.models import AttemptRecord
+from autosolver.models import Assignment, AttemptRecord, Solution
 from autosolver.parser import parse_problem
 from autosolver.selector import StrategySelector
 import autosolver.strategies as strategies
 from autosolver.strategies import (
+    BeamSetPackingSearch,
     GreedyByCoverage,
     GreedyByExpectedScore,
     GreedyByScore,
     LocalRepair,
+    PairSwapRepair,
+    SingletonMatchingGreedy,
     ReinforceGreedy,
 )
 
@@ -175,6 +178,75 @@ class StrategyTests(unittest.TestCase):
         self.assertIn(
             ("T0001", ("C002",)),
             [(assignment.task_id_list, assignment.courier_ids) for assignment in reinforced.assignments],
+        )
+
+    def test_singleton_matching_uses_global_courier_assignment(self):
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001\tC001\t1.0\t1.0",
+                    "T0001\tC002\t2.0\t1.0",
+                    "T0002\tC001\t2.0\t1.0",
+                    "T0002\tC002\t100.0\t1.0",
+                ]
+            )
+        )
+
+        solution = SingletonMatchingGreedy().run(instance, None, TimeBudget(1.0))
+
+        self.assertTrue(evaluate_solution(instance, solution).valid)
+        self.assertEqual(
+            {(assignment.task_id_list, assignment.courier_ids) for assignment in solution.assignments},
+            {("T0001", ("C002",)), ("T0002", ("C001",))},
+        )
+
+    def test_pair_swap_repair_exchanges_couriers_when_better(self):
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001\tC001\t1.0\t1.0",
+                    "T0001\tC002\t2.0\t1.0",
+                    "T0002\tC001\t2.0\t1.0",
+                    "T0002\tC002\t100.0\t1.0",
+                ]
+            )
+        )
+        incumbent = Solution(
+            assignments=(
+                Assignment.from_candidate(instance.candidates[0]),
+                Assignment.from_candidate(instance.candidates[3]),
+            )
+        )
+
+        repaired = PairSwapRepair().run(instance, incumbent, TimeBudget(1.0))
+
+        self.assertEqual(
+            {(assignment.task_id_list, assignment.courier_ids) for assignment in repaired.assignments},
+            {("T0001", ("C002",)), ("T0002", ("C001",))},
+        )
+
+    def test_beam_set_packing_selects_non_overlapping_bundles(self):
+        instance = parse_problem(
+            "\n".join(
+                [
+                    "task_id_list\tcourier_id\ttotal_score\twillingness",
+                    "T0001,T0002\tC001\t10.0\t1.0",
+                    "T0002,T0003\tC002\t1.0\t1.0",
+                    "T0003,T0004\tC002\t10.0\t1.0",
+                    "T0001\tC001\t50.0\t1.0",
+                    "T0004\tC002\t50.0\t1.0",
+                ]
+            )
+        )
+
+        solution = BeamSetPackingSearch().run(instance, None, TimeBudget(1.0))
+
+        self.assertTrue(evaluate_solution(instance, solution).valid)
+        self.assertEqual(
+            {(assignment.task_id_list, assignment.courier_ids) for assignment in solution.assignments},
+            {("T0001,T0002", ("C001",)), ("T0003,T0004", ("C002",))},
         )
 
     def test_exact_branch_and_bound_minimizes_penalized_score(self):

@@ -3,13 +3,19 @@ from typing import Optional, Tuple
 from autosolver.budget import TimeBudget
 from autosolver.models import AttemptRecord
 from autosolver.strategies import (
+    BeamSetPackingSearch,
     ExactBranchAndBound,
     GreedyByCoverage,
     GreedyByExpectedScore,
     GreedyByScore,
     GreedyCoverageAware,
     LocalRepair,
+    MarginalSavingsGreedy,
+    PairSwapRepair,
+    PressureCoverageGreedy,
     ReinforceGreedy,
+    SingletonBeamReassignment,
+    SingletonMatchingGreedy,
     Strategy,
 )
 
@@ -21,8 +27,14 @@ class StrategySelector:
             GreedyByExpectedScore(),
             GreedyByCoverage(),
             GreedyCoverageAware(),
+            SingletonMatchingGreedy(),
+            SingletonBeamReassignment(),
+            MarginalSavingsGreedy(),
+            PressureCoverageGreedy(),
+            BeamSetPackingSearch(),
             ExactBranchAndBound(),
             ReinforceGreedy(),
+            PairSwapRepair(),
             LocalRepair(),
         )
 
