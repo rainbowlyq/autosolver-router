@@ -176,7 +176,7 @@ uv run python -m unittest tests.test_evaluator -v
 
 ## 离线参考求解
 
-`solver-workspace/` 是独立的现代 Python 离线求解工作区，可使用 Gurobi 等第三方优化器生成近优参考解。该目录不受比赛提交环境的 Python 3.6、纯标准库、单文件和 10 秒限制约束，主要用于把参考结果保存到 `data/gurobi/` 或相关验证目录，帮助判断当前启发式策略距离近优解的差距。
+`gurobi-workspace/` 是独立的现代 Python 离线求解工作区，可使用 Gurobi 等第三方优化器生成近优参考解。该目录不受比赛提交环境的 Python 3.6、纯标准库、单文件和 10 秒限制约束，主要用于把参考结果保存到 `data/gurobi/` 或相关验证目录，帮助判断当前启发式策略距离近优解的差距。
 
 提交版求解器仍坚持轻量启发式设计：标准库、限时运行、随时可返回当前最优合法解。
 
@@ -208,5 +208,5 @@ benchmark.py                 # 本地基准辅助
 tests/                       # 单元测试
 data/                        # 测试用例数据
 docs/                        # 设计报告和策略文档
-solver-workspace/            # 离线参考求解工作区
+gurobi-workspace/            # 离线参考求解工作区
 ```
